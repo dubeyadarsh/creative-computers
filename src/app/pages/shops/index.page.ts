@@ -327,6 +327,7 @@ goToProduct(productId: number): void {
     // Failsafe: Ensure the body is never locked when navigating away
     document.body.style.overflow = '';
     
+    //cgec
     // Navigate to the product details page
     this.router.navigate(['/product-details']); 
   }
