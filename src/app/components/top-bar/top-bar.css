@@ -1,0 +1,153 @@
+/* ══════════════════════════════════════════
+   TOP BAR — TECH.LUXE
+   Tokens from styles.css :root
+   ══════════════════════════════════════════ */
+
+.top-bar-header {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--max-width, 480px);
+  height: var(--nav-top-height, 60px);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--neutral-200, #e2e8f0);
+  z-index: 100;
+  transition: background var(--duration-slow, 400ms) ease,
+              box-shadow var(--duration-slow, 400ms) ease;
+}
+
+/* Subtle shadow on scroll — add .scrolled via JS */
+.top-bar-header.scrolled {
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 1px 0 var(--neutral-200), 0 4px 20px rgba(15,23,42,0.06);
+}
+
+.top-bar-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0 var(--space-5, 1.25rem);
+  
+}
+
+/* ─── Brand Logo ─── */
+.brand-logo {
+  font-family: var(--font-display, 'Sora', sans-serif);
+  font-size: 1.125rem;
+  font-weight: 300;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--neutral-900, #0f172a);
+  line-height: 1;
+  text-decoration: none;
+  transition: opacity var(--duration-fast, 150ms) ease;
+}
+.brand-logo:hover { opacity: 0.75; }
+
+.brand-accent {
+  font-weight: 700;
+  background: var(--gradient-brand, linear-gradient(135deg, #6366f1, #a855f7));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Cart Anchor ─── */
+.cart-anchor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full, 9999px);
+  color: var(--neutral-600, #475569);
+  transition: background var(--duration-fast, 150ms) ease,
+              color var(--duration-fast, 150ms) ease,
+              transform var(--duration-fast, 150ms) var(--ease-spring);
+  text-decoration: none;
+}
+.cart-anchor:hover {
+  background: var(--neutral-100, #f1f5f9);
+  color: var(--neutral-900, #0f172a);
+}
+.cart-anchor:active { transform: scale(0.92); }
+
+.icon-svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.75;
+  display: block;
+}
+
+/* ─── Cart Badge ─── */
+.cart-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  color: white;
+  background: var(--gradient-brand, linear-gradient(135deg, #6366f1, #a855f7));
+  border-radius: var(--radius-full, 9999px);
+  box-shadow: 0 0 0 2px white, 0 2px 8px rgba(99,102,241,0.4);
+  pointer-events: none;
+  animation: badge-pulse 2.8s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.08); }
+}
+
+/* ─── Responsive ─── */
+@media (min-width: 1024px) {
+  .top-bar-header {
+    border-radius: var(--radius-2xl, 28px) var(--radius-2xl, 28px) 0 0;
+    border-bottom: 1px solid var(--neutral-200);
+  }
+}
+/* Add to top-bar.css */
+.desktop-nav {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .top-bar-header {
+    max-width: 100%; /* FIX: This allows it to span the full width */
+    border-radius: 0; /* Removes the rounded corners meant for the mobile shell */
+    border-bottom: 1px solid var(--neutral-200);
+  }
+  
+  /* Make sure the container inside the top bar maxes out elegantly */
+  .top-bar-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+  .desktop-nav {
+    display: flex;
+    gap: 2.5rem;
+  }
+  .desktop-link {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--neutral-600);
+    transition: color var(--duration-fast) ease;
+  }
+  .desktop-link:hover {
+    color: var(--neutral-900);
+  }
+}

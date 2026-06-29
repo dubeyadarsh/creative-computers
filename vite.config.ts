@@ -6,6 +6,9 @@ import tailwindcss from '@tailwindcss/vite';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // FIX: Conditionally apply the base path only during the production build
+  base: mode === 'production' ? '/creative-computers/' : '/',
+  
   build: {
     target: ['es2020'],
   },
@@ -13,7 +16,14 @@ export default defineConfig(({ mode }) => ({
     mainFields: ['module'],
   },
   plugins: [
-    analog(),
+    analog({
+      prerender: {
+        routes: async () => [
+          '/',
+          // Ensure your dynamic product routes are handled if prerendering
+        ],
+      },
+    }),
     tailwindcss()
   ],
   test: {

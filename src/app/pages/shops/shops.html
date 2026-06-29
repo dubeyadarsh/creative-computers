@@ -1,0 +1,128 @@
+<div class="shops-container">
+
+    <!-- ═══ HEADER ═══ -->
+    <header class="shops-header">
+        <div class="shops-header__title">
+            <span class="accent">Tech.Luxe Shops</span>
+        </div>
+        <div class="shops-header__actions">
+            <button class="shops-header__cart" aria-label="Cart">
+                <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                    <line x1="3" y1="6" x2="21" y2="6" />
+                    <path d="M16 10a4 4 0 0 1-8 0" />
+                </svg>
+                @if (cart.length > 0) {
+                    <span class="badge">{{ cart.length }}</span>
+                }
+            </button>
+        </div>
+    </header>
+
+    <!-- ═══ UNIFIED DESKTOP TOOLBAR ═══ -->
+    <div class="desktop-toolbar">
+        
+        <!-- Search -->
+        <div class="search-wrapper">
+            <span class="search-wrapper__icon">
+                <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+            </span>
+            <input class="search-wrapper__input" type="text" placeholder="Search hardware..." [(ngModel)]="searchQuery" (ngModelChange)="applyFiltersAndSort()"/>
+        </div>
+
+        <!-- Categories -->
+        <div class="categories-scroll hide-scrollbar">
+            @for (cat of CATEGORIES; track cat) {
+                <button class="category-chip" [class.active]="selectedCategory === cat" (click)="selectCategory(cat)">
+                    {{ cat }}
+                </button>
+            }
+        </div>
+
+        <!-- Sort & Filter Actions -->
+        <div class="toolbar-actions">
+            <span class="results-count"><strong>{{ filteredProducts.length }}</strong> items</span>
+            <button class="btn-action" (click)="toggleSort()">
+                <svg viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg>
+                <span>{{ sortBy | titlecase }}</span>
+            </button>
+            <button class="btn-action" (click)="openFilters()" [class.active]="getActiveFilterCount() > 0">
+                <svg viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                <span>Filters</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══ HIGH-DENSITY PRODUCT GRID ═══ -->
+  <div class="product-grid">
+        @for (product of displayedProducts; track product.id) {
+            <div class="product-card">
+                
+                <div class="product-card__image-wrap" (click)="goToProduct(product.id)" style="cursor: pointer;">
+                    <img [src]="product.image" [alt]="product.name" />
+                    
+                    @if (product.isTrending) {
+                        <span class="badge-trending">Trending</span>
+                    }
+                    <button class="product-card__wishlist" [class.liked]="isWishlisted(product.id)" (click)="toggleWishlist(product.id); $event.stopPropagation()">
+                        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                    </button>
+                </div>
+
+                <div class="product-card__body">
+                    <p class="product-card__brand">{{ product.brand }}</p>
+                    
+                    <h3 class="product-card__title" (click)="goToProduct(product.id)" style="cursor: pointer; text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
+                        {{ product.name }}
+                    </h3>
+                    
+                    <div class="product-card__rating">
+                        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                        <span class="score">{{ product.rating }}</span>
+                        <span class="reviews">({{ product.reviews }})</span>
+                    </div>
+                    
+                    <div class="product-card__footer">
+                        <div class="product-card__price">
+                            {{ formatPrice(getFinalPrice(product)) }}
+                        </div>
+                        <button class="product-card__add" (click)="addToCart(product.id)">
+                            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    <!-- ═══ FILTER DRAWER ═══ -->
+    @if (showFilters) {
+        <div class="filter-overlay" (click)="closeFilters()"></div>
+        <div class="filter-drawer">
+            <div class="filter-drawer__header">
+                <h3>Filters</h3>
+                <button class="btn-ghost" (click)="closeFilters()">✕</button>
+            </div>
+            <div class="filter-section">
+                <label class="filter-section__label">Price Range</label>
+                <div class="price-range__inputs">
+                    <input type="number" [(ngModel)]="filters.priceMin" placeholder="Min" />
+                    <input type="number" [(ngModel)]="filters.priceMax" placeholder="Max" />
+                </div>
+            </div>
+            <div class="filter-section">
+                <label class="filter-section__label">Stock Status</label>
+                <div class="filter-section__options">
+                    @for (opt of ['all', 'in', 'low', 'out']; track opt) {
+                        <button class="filter-option" [class.active]="filters.stock === opt" (click)="filters.stock = opt">
+                            {{ opt | titlecase }}
+                        </button>
+                    }
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button class="btn-ghost" style="flex:1;" (click)="resetFilters()">Clear</button>
+                <button class="btn-primary" style="flex:2;" (click)="applyFiltersFromDrawer()">Apply</button>
+            </div>
+        </div>
+    }
+</div>

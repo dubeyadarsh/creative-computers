@@ -1,0 +1,112 @@
+/* ════════════════════════════════
+   FOOTER (Standalone Component Fix)
+   ════════════════════════════════ */
+.footer-section {
+  background: var(--neutral-900, #0f172a);
+  margin: 3rem 0 0 0; 
+  width: 100%;
+  max-width: 100%; /* FIX: Unlocked from 1280px to 100% full width */
+  box-sizing: border-box; 
+  padding: 2.25rem 1.5rem 1.75rem;
+  border-radius: var(--radius-2xl, 28px) var(--radius-2xl, 28px) 0 0;
+}
+
+.footer-logo {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 300;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: white;
+  margin-bottom: 0.625rem;
+}
+
+.footer-logo-accent {
+  font-weight: 700;
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.footer-desc {
+  font-size: var(--text-sm, 0.8125rem);
+  color: var(--neutral-500, #64748b);
+  line-height: 1.65;
+  max-width: 280px;
+  margin-bottom: 2rem;
+}
+
+.footer-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.07);
+  margin-bottom: 1.5rem;
+}
+
+.footer-links {
+  display: flex;
+  gap: 2.5rem;
+  margin-bottom: 2rem;
+}
+
+.link-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.link-title {
+  font-size: var(--text-xs, 0.6875rem);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--neutral-500, #64748b);
+  margin-bottom: 0.25rem;
+}
+
+.footer-link {
+  font-size: var(--text-sm, 0.8125rem);
+  color: var(--neutral-400, #94a3b8);
+  text-decoration: none;
+  transition: color var(--duration-fast) ease;
+  line-height: 1;
+}
+.footer-link:hover { color: white; }
+
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  font-size: var(--text-xs, 0.6875rem);
+  color: var(--neutral-600, #475569);
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+
+/* ════════════════════════════════
+   DESKTOP OVERRIDES
+   ════════════════════════════════ */
+@media (min-width: 1024px) {
+  .footer-section {
+    margin-top: 5rem; 
+    border-radius: 0; /* FIX: Removes rounded corners for a true edge-to-edge look */
+    padding: 4rem 4rem 2rem 4rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  
+  .footer-links {
+    gap: 4rem;
+    margin-bottom: 0;
+  }
+  
+  .footer-bottom {
+    width: 100%;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+  }
+}
