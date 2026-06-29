@@ -35,6 +35,9 @@ jobs:
       - name: Build project
         run: npm run build
 
+      - name: Fix GitHub Pages SPA Routing
+        run: cp dist/analog/public/index.html dist/analog/public/404.html
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
