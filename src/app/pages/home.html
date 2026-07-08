@@ -1,69 +1,133 @@
 <div class="home-wrapper">
   
-  <!-- Hero Banner -->
-  <section class="hero-card">
+  <section class="hero-card animate-fade-in">
     <div class="hero-overlay"></div>
-    <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80" alt="Hardware" class="hero-bg" />
-    
+    <img src="https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?auto=format&fit=crop&w=1200&q=80" alt="Premium Tech" class="hero-bg" />
     <div class="hero-content">
-      <h2 class="hero-title">Laptops, CCTV, Printers &<br>Accessories</h2>
-      <button class="hero-btn" (click)="shopHardware()">Start Shopping</button>
-    </div>
-
-    <div class="hero-dots">
-      <span class="dot active"></span>
-      <span class="dot"></span>
-    </div>
-  </section>
-
-  <!-- Categories Grid -->
-  <section class="section-container">
-    <h3 class="section-heading">Categories</h3>
-    <div class="categories-grid">
-      <a routerLink="/products" [queryParams]="{category: 'laptops'}" class="category-card">
-        <img src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=400&q=80" class="category-img" alt="Laptops"/>
-        <div class="category-overlay"></div>
-        <span class="category-title">Laptops</span>
-      </a>
-      <a routerLink="/products" [queryParams]="{category: 'computers'}" class="category-card">
-        <img src="https://images.unsplash.com/photo-1587202372634-32705e3bf49c?auto=format&fit=crop&w=400&q=80" class="category-img" alt="Computers"/>
-        <div class="category-overlay"></div>
-        <span class="category-title">Computers</span>
-      </a>
-      <a routerLink="/products" [queryParams]="{category: 'monitors'}" class="category-card">
-        <img src="https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=400&q=80" class="category-img" alt="Monitors"/>
-        <div class="category-overlay"></div>
-        <span class="category-title">Monitors</span>
-      </a>
-      <a routerLink="/products" [queryParams]="{category: 'accessories'}" class="category-card">
-        <img src="https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?auto=format&fit=crop&w=400&q=80" class="category-img" alt="Accessories"/>
-        <div class="category-overlay"></div>
-        <span class="category-title">Accessories</span>
-      </a>
+      <span class="badge-new-hero glow-effect">Tech.Luxe Exclusives</span>
+      <h2 class="hero-title text-gradient">Elevate Your<br>Digital Workspace.</h2>
+      <p class="hero-subtitle">Premium laptops, pro monitors, and next-gen components curated for elite creators.</p>
+      <button class="hero-btn hover-lift" (click)="shopHardware()">
+        Explore Collection <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
     </div>
   </section>
 
-  <!-- Best Sellers Horizontal List -->
-  <section class="section-container">
+  <section class="stats-container animate-fade-in-up delay-1">
+    @for (stat of stats; track stat.label) {
+      <div class="stat-item">
+        <h4 class="stat-value">{{ stat.value }}</h4>
+        <p class="stat-label">{{ stat.label }}</p>
+      </div>
+    }
+  </section>
+
+  <section class="section-container animate-fade-in-up delay-2 pb-2">
     <div class="section-header-row">
-      <h3 class="section-heading">Best Sellers</h3>
-      <a routerLink="/products" class="view-all-link">View All</a>
+      <h3 class="section-heading">Shop by Category</h3>
     </div>
-    <div class="horizontal-scroll hide-scrollbar">
-      @for (product of bestSellers; track product.id) {
-        <div class="product-card">
-          <div class="product-img-wrapper">
-            @if (product.isNew) { <span class="badge-new">New</span> }
-            <img [src]="product.image" [alt]="product.name" class="product-img"/>
+    @if (isLoadingCategories) {
+      <div class="horizontal-scroll hide-scrollbar">
+        @for (i of [1,2,3,4]; track i) { <div class="category-card skeleton-card"></div> }
+      </div>
+    } @else {
+      <div class="horizontal-scroll hide-scrollbar snap-mandatory">
+        @for (cat of homeCategories; track cat.id) {
+          <a [routerLink]="['/shops']" [queryParams]="{category: cat.id}" class="category-card hover-lift">
+            <img src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=400&q=80" class="category-img" alt=""/>
+            <div class="category-overlay"></div>
+            <div class="category-content">
+              <span class="category-title">{{ cat.name }}</span>
+              <div class="category-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+            </div>
+          </a>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="section-container pb-2">
+    <div class="section-header-row">
+      <h3 class="section-heading"><span class="emoji-icon">🔥</span> Trending Now</h3>
+    </div>
+    @if (isLoadingProducts) {
+      <div class="horizontal-scroll hide-scrollbar">
+        @for (i of [1,2,3,4]; track i) { <div class="product-card skeleton-card"></div> }
+      </div>
+    } @else {
+      <div class="horizontal-scroll hide-scrollbar snap-mandatory">
+        @for (prod of trendingProducts; track prod.id) {
+          <div class="product-card premium-card hover-lift">
+            <div class="product-img-wrapper" routerLink="/product-details">
+              <img [src]="prod.image_urls?.[0] || 'assets/placeholder.jpg'" [alt]="prod.name" class="product-img"/>
+              <span class="badge-status trending">#1 In Category</span>
+            </div>
+            <div class="product-info">
+              <span class="product-brand">{{ getCategoryName(prod.category_id) }}</span>
+              <h4 class="product-name truncate-2" routerLink="/product-details">{{ prod.name }}</h4>
+              <div class="product-footer">
+                <span class="product-price">₹ {{ prod.price.toLocaleString('en-US') }}</span>
+                <button class="btn-add-premium" [disabled]="prod.stock === 0">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="2.5" d="M12 5v14m-7-7h14"></path></svg>
+                  <span>Add</span>
+                </button>
+              </div>
+            </div>
           </div>
-          <div class="product-info">
-            <h4 class="product-name">{{ product.name }}</h4>
-            <p class="product-desc">{{ product.description }}</p>
-            <div class="product-footer">
-              <span class="product-price">{{ product.price.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }) }}</span>
-              <button class="cart-btn" aria-label="Add to cart">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-              </button>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="section-container pb-2">
+    <div class="section-header-row">
+      <h3 class="section-heading">New Arrivals</h3>
+      <a routerLink="/shops" class="view-all-link">View All Collection &rarr;</a>
+    </div>
+    @if (isLoadingProducts) {
+      <div class="horizontal-scroll hide-scrollbar">
+        @for (i of [1,2,3,4]; track i) { <div class="product-card skeleton-card"></div> }
+      </div>
+    } @else {
+      <div class="horizontal-scroll hide-scrollbar snap-mandatory">
+        @for (prod of featuredProducts; track prod.id) {
+          <div class="product-card premium-card hover-lift">
+            <div class="product-img-wrapper" routerLink="/product-details">
+              <img [src]="prod.image_urls?.[0] || 'assets/placeholder.jpg'" [alt]="prod.name" class="product-img"/>
+              @if (prod.stock < 5 && prod.stock > 0) { <span class="badge-status warning">Low Stock</span> }
+            </div>
+            <div class="product-info">
+              <span class="product-brand">{{ getCategoryName(prod.category_id) }}</span>
+              <h4 class="product-name truncate-2" routerLink="/product-details">{{ prod.name }}</h4>
+              <div class="spec-tags">
+                @for (key of getPreviewSpecs(prod); track key) { <span class="spec-tag">{{ prod.attributes[key] }}</span> }
+              </div>
+              <div class="product-footer">
+                <span class="product-price">₹{{ prod.price.toLocaleString('en-US') }}</span>
+                <button class="btn-add-premium" [disabled]="prod.stock === 0">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="2.5" d="M12 5v14m-7-7h14"></path></svg>
+                  <span>Add</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="section-container">
+    <h3 class="section-heading mb-4">Loved by Professionals</h3>
+    <div class="horizontal-scroll hide-scrollbar snap-mandatory">
+      @for (review of reviews; track review.name) {
+        <div class="review-card premium-card hover-lift">
+          <div class="stars">★★★★★</div>
+          <p class="review-text">"{{ review.text }}"</p>
+          <div class="review-author">
+            <div class="author-avatar">{{ review.name.charAt(0) }}</div>
+            <div class="author-details">
+              <span class="author-name">{{ review.name }}</span>
+              <span class="author-role">{{ review.role }}</span>
             </div>
           </div>
         </div>
@@ -71,120 +135,54 @@
     </div>
   </section>
 
-  <!-- Professional Services Grid -->
   <section class="section-container">
     <h3 class="section-heading mb-4">Professional Services</h3>
-    
     <div class="services-grid">
-      <!-- Service 1: Computer Repair -->
-      <div class="service-card dark">
-        <div class="service-icon dark-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-        </div>
+      <div class="service-card dark premium-card hover-lift">
+        <div class="service-icon dark-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></div>
         <h4 class="service-title">Computer Repair</h4>
-        <p class="service-desc">Expert hardware diagnostics, motherboard repairs, and software troubleshooting for all PC and laptop brands.</p>
+        <p class="service-desc">Expert hardware diagnostics and precision motherboard repairs.</p>
       </div>
-
-      <!-- Service 2: CCTV Installation -->
-      <div class="service-card light">
-        <div class="service-icon light-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-        </div>
+      <div class="service-card light premium-card hover-lift">
+        <div class="service-icon light-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></div>
         <h4 class="service-title">CCTV Installation</h4>
-        <p class="service-desc">Enterprise-grade security deployments and smart camera setups for homes, offices, and commercial spaces.</p>
-      </div>
-
-      <!-- Service 3: Printer Servicing -->
-      <div class="service-card dark">
-        <div class="service-icon dark-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-        </div>
-        <h4 class="service-title">Printer Servicing</h4>
-        <p class="service-desc">Ink/toner refilling, roller replacement, and deep maintenance for laser, inkjet, and thermal printers.</p>
-      </div>
-
-      <!-- Service 4: Internet Setup -->
-      <div class="service-card light">
-        <div class="service-icon light-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path></svg>
-        </div>
-        <h4 class="service-title">Network Setup</h4>
-        <p class="service-desc">High-speed LAN/WAN configurations, seamless router installations, and cyber cafe network structuring.</p>
-      </div>
-
-      <!-- Service 5: Cyber Cafe -->
-      <div class="service-card dark">
-        <div class="service-icon dark-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
-        </div>
-        <h4 class="service-title">Cyber Services</h4>
-        <p class="service-desc">High-speed browsing, official document printing, scanning, lamination, and digital form assistance.</p>
-      </div>
-
-      <!-- Service 6: AMC Maintenance -->
-      <div class="service-card light">
-        <div class="service-icon light-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-        </div>
-        <h4 class="service-title">IT Maintenance</h4>
-        <p class="service-desc">Annual Maintenance Contracts (AMC) to ensure your business IT infrastructure runs flawlessly 24/7.</p>
+        <p class="service-desc">Enterprise-grade security deployments and smart setups.</p>
       </div>
     </div>
   </section>
 
-  <!-- Contact Us / Booking Section -->
   <section class="section-container">
-    <div class="contact-section">
+    <div class="contact-section shadow-glow premium-card">
       <div class="contact-info">
         <h2 class="contact-title">Need Expert Assistance?</h2>
-        <p class="contact-desc">From complex hardware repairs to setting up an entire office network, our certified technicians are ready to deploy. Drop us a message below.</p>
+        <p class="contact-desc">From complex hardware repairs to setting up an entire office network, our certified technicians are ready.</p>
         <div class="contact-methods">
-          <div class="contact-method">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-            <span>+91 98765 43210</span>
-          </div>
-          <div class="contact-method">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-            <span>support&#64;creative.computers</span>
-          </div>
+          <div class="contact-method"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg> <span>+91 98765 43210</span></div>
+          <div class="contact-method"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> <span>support&#64;tech.luxe</span></div>
         </div>
       </div>
-      
       <div class="contact-form-card">
         <form class="contact-form">
           <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Your Name</label>
-              <input type="text" class="form-input" placeholder="John Doe" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Phone Number</label>
-              <input type="tel" class="form-input" placeholder="+91 00000 00000" required>
-            </div>
+            <div class="form-group"><label>Your Name</label><input type="text" class="form-input" placeholder="John Doe" required></div>
+            <div class="form-group"><label>Phone Number</label><input type="tel" class="form-input" placeholder="+91 00000 00000" required></div>
           </div>
-          
           <div class="form-group">
-            <label class="form-label">Service Required</label>
-            <select class="form-input custom-select" required>
+            <label>Service Required</label>
+            <select class="form-input" required>
               <option value="" disabled selected>Select a service...</option>
-              <option value="repair">Computer/Laptop Repair</option>
-              <option value="cctv">CCTV Installation</option>
-              <option value="printer">Printer Servicing</option>
-              <option value="network">Network/Internet Setup</option>
-              <option value="amc">AMC / Maintenance</option>
+              <option value="repair">Computer Repair</option>
+              <option value="network">Network Setup</option>
               <option value="other">Other Inquiry</option>
             </select>
           </div>
-          
           <div class="form-group">
-            <label class="form-label">Message</label>
-            <textarea class="form-input form-textarea" placeholder="Describe your issue or requirement..." required></textarea>
+            <label>Message</label>
+            <textarea class="form-input form-textarea" placeholder="Describe your issue..." required></textarea>
           </div>
-          
-          <button type="submit" class="btn-submit">Request Service</button>
+          <button type="submit" class="btn-submit hover-lift">Request Service</button>
         </form>
       </div>
     </div>
   </section>
-
 </div>
