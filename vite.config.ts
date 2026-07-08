@@ -5,9 +5,9 @@ import analog from '@analogjs/platform';
 import tailwindcss from '@tailwindcss/vite';
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  // FIX: Conditionally apply the base path only during the production build
-  base: mode === 'production' ? '/creative-computers/' : '/',
+export default defineConfig(() => ({
+  // FIX: Since you are on Netlify, the base path should ALWAYS be '/'
+  base: '/',
   
   build: {
     target: ['es2020'],
