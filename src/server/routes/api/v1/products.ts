@@ -4,9 +4,10 @@ import { supabase } from '../../../utils/supabase';
 export default defineEventHandler(async (event) => {
   const method = getMethod(event);
 
- if (method === 'GET') {
+  if (method === 'GET') {
     const query = getQuery(event);
     const categoryId = query['categoryId'] as string;
+    const type = query['type'] as string; // NEW: Grab the type parameter
     
     // Pagination defaults: page 1, 10 items per page
     const page = parseInt((query['page'] as string) || '1', 10);
@@ -23,7 +24,15 @@ export default defineEventHandler(async (event) => {
       .order('created_at', { ascending: false })
       .range(from, to);
 
+    // Apply Filters
     if (categoryId) dbQuery = dbQuery.eq('category_id', categoryId);
+    
+    // NEW: Apply Trending and New Arrival filters
+    if (type === 'trending') {
+      dbQuery = dbQuery.eq('is_trending', true);
+    } else if (type === 'new') {
+      dbQuery = dbQuery.eq('is_new_arrival', true);
+    }
 
     const { data, error, count } = await dbQuery;
     if (error) throw createError({ statusCode: 500, statusMessage: error.message });
@@ -64,13 +73,23 @@ export default defineEventHandler(async (event) => {
       }
 
       const attributes = fields['attributes'] ? JSON.parse(fields['attributes']) : {};
+      
+      // NEW: Parse the boolean flags safely from FormData strings
+      const isTrending = fields['is_trending'] === 'true';
+      const isNewArrival = fields['is_new_arrival'] === 'true';
 
       if (method === 'POST') {
         const { data, error: dbError } = await supabase.from('products').insert([{
-          name: fields['name'], description: fields['description'] || '',
-          price: parseFloat(fields['price']), stock: parseInt(fields['stock'] || '1'),
-          category_id: fields['category_id'], uploaded_by: fields['uploaded_by'] || 'admin_user',
-          attributes, image_urls: newImageUrls
+          name: fields['name'], 
+          description: fields['description'] || '',
+          price: parseFloat(fields['price']), 
+          stock: parseInt(fields['stock'] || '1'),
+          category_id: fields['category_id'], 
+          uploaded_by: fields['uploaded_by'] || 'admin_user',
+          attributes, 
+          image_urls: newImageUrls,
+          is_trending: isTrending,       // NEW
+          is_new_arrival: isNewArrival   // NEW
         }]).select().single();
 
         if (dbError) throw createError({ statusCode: 500, statusMessage: dbError.message });
@@ -86,9 +105,15 @@ export default defineEventHandler(async (event) => {
         const finalImageUrls = [...existingImages, ...newImageUrls];
 
         const { data, error: dbError } = await supabase.from('products').update({
-          name: fields['name'], description: fields['description'] || '',
-          price: parseFloat(fields['price']), stock: parseInt(fields['stock'] || '1'),
-          category_id: fields['category_id'], attributes, image_urls: finalImageUrls
+          name: fields['name'], 
+          description: fields['description'] || '',
+          price: parseFloat(fields['price']), 
+          stock: parseInt(fields['stock'] || '1'),
+          category_id: fields['category_id'], 
+          attributes, 
+          image_urls: finalImageUrls,
+          is_trending: isTrending,       // NEW
+          is_new_arrival: isNewArrival   // NEW
         }).eq('id', id).select().single();
 
         if (dbError) throw createError({ statusCode: 500, statusMessage: dbError.message });

@@ -118,7 +118,7 @@
 }
 
 /* Add to bottom-nav.css */
-@media (min-width: 1024px) {
+@media (min-width: 767px) {
   .bottom-nav {
     display: none; 
   }

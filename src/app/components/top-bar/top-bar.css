@@ -1,153 +1,310 @@
-/* ══════════════════════════════════════════
-   TOP BAR — TECH.LUXE
-   Tokens from styles.css :root
-   ══════════════════════════════════════════ */
-
-.top-bar-header {
-  position: fixed;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 100%;
-  max-width: var(--max-width, 480px);
-  height: var(--nav-top-height, 60px);
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid var(--neutral-200, #e2e8f0);
-  z-index: 100;
-  transition: background var(--duration-slow, 400ms) ease,
-              box-shadow var(--duration-slow, 400ms) ease;
+.app-header {
+  background: var(--bg-color);
+  border-bottom: 1px solid var(--border-color);
 }
 
-/* Subtle shadow on scroll — add .scrolled via JS */
-.top-bar-header.scrolled {
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 1px 0 var(--neutral-200), 0 4px 20px rgba(15,23,42,0.06);
-}
-
-.top-bar-container {
+.header-main {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  height: 100%;
-  padding: 0 var(--space-5, 1.25rem);
-  
+  padding: 1rem 0;
+  gap: 1rem;
 }
 
-/* ─── Brand Logo ─── */
 .brand-logo {
-  font-family: var(--font-display, 'Sora', sans-serif);
-  font-size: 1.125rem;
-  font-weight: 300;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--neutral-900, #0f172a);
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--primary-green);
   text-decoration: none;
-  transition: opacity var(--duration-fast, 150ms) ease;
+  letter-spacing: -0.03em;
 }
-.brand-logo:hover { opacity: 0.75; }
-
-.brand-accent {
-  font-weight: 700;
-  background: var(--gradient-brand, linear-gradient(135deg, #6366f1, #a855f7));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+/* --- SEARCH BAR BASE STYLES --- */
+.search-container {
+  order: 3;
+  width: 100%;
 }
 
-/* ─── Cart Anchor ─── */
-.cart-anchor {
-  position: relative;
+.search-box {
+  display: flex;
+  align-items: center;
+  /* Use the new theme variables */
+  background: var(--bg-image-gray);
+  border: 2px solid transparent; /* Transparent by default for a clean look */
+  border-radius: 99px;
+  padding: 0.4rem 1.25rem;
+  transition: all 0.3s ease;
+}
+
+/* 🌟 Decoration: Smooth highlight when a user clicks inside the search bar */
+.search-box:focus-within {
+  background: var(--bg-main);
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 15px var(--primary-light);
+}
+
+.search-box input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.4rem;
+  font-size: 0.95rem;
+  outline: none;
+  color: var(--text-main);
+}
+
+.search-box input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-full, 9999px);
-  color: var(--neutral-600, #475569);
-  transition: background var(--duration-fast, 150ms) ease,
-              color var(--duration-fast, 150ms) ease,
-              transform var(--duration-fast, 150ms) var(--ease-spring);
-  text-decoration: none;
-}
-.cart-anchor:hover {
-  background: var(--neutral-100, #f1f5f9);
-  color: var(--neutral-900, #0f172a);
-}
-.cart-anchor:active { transform: scale(0.92); }
-
-.icon-svg {
-  width: 22px;
-  height: 22px;
-  stroke-width: 1.75;
-  display: block;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
-/* ─── Cart Badge ─── */
-.cart-badge {
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
-  color: white;
-  background: var(--gradient-brand, linear-gradient(135deg, #6366f1, #a855f7));
-  border-radius: var(--radius-full, 9999px);
-  box-shadow: 0 0 0 2px white, 0 2px 8px rgba(99,102,241,0.4);
-  pointer-events: none;
-  animation: badge-pulse 2.8s ease-in-out infinite;
+/* 🌟 Decoration: Change icon color on hover or when typing */
+.search-box:focus-within .search-btn,
+.search-btn:hover {
+  color: var(--primary-color);
+  transform: scale(1.1);
 }
 
-@keyframes badge-pulse {
-  0%, 100% { transform: scale(1); }
-  50%       { transform: scale(1.08); }
-}
-
-/* ─── Responsive ─── */
-@media (min-width: 1024px) {
-  .top-bar-header {
-    border-radius: var(--radius-2xl, 28px) var(--radius-2xl, 28px) 0 0;
-    border-bottom: 1px solid var(--neutral-200);
-  }
-}
-/* Add to top-bar.css */
-.desktop-nav {
-  display: none;
-}
-
-@media (min-width: 1024px) {
-  .top-bar-header {
-    max-width: 100%; /* FIX: This allows it to span the full width */
-    border-radius: 0; /* Removes the rounded corners meant for the mobile shell */
-    border-bottom: 1px solid var(--neutral-200);
+/* --- LAPTOP / DESKTOP VIEW OVERRIDES --- */
+@media (min-width: 768px) {
+  .search-container {
+    order: 2;
+    width: auto;
+    flex: 1;
+    /* Control the width on large screens for a balanced look */
+    max-width: 550px; 
+    margin: 0 3rem;
   }
   
-  /* Make sure the container inside the top bar maxes out elegantly */
-  .top-bar-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 0 2rem;
+  .header-actions { 
+    order: 3; 
   }
-  .desktop-nav {
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  order: 2;
+}
+
+.action-icon {
+  position: relative;
+  color: var(--text-main);
+  text-decoration: none;
+}
+
+.action-icon .badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  background: var(--primary-green);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-account {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: var(--text-main);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  background: var(--bg-gray);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+/* Desktop Overrides */
+@media (min-width: 768px) {
+  .search-container {
+    order: 2;
+    width: auto;
+    flex: 1;
+    max-width: 600px;
+    margin: 0 2rem;
+  }
+  .header-actions { order: 3; }
+}
+
+@media (max-width: 767px) {
+  .hidden-mobile { display: none !important; }
+  .search-container { 
+    display: none !important; 
+  }
+  
+  /* Prevent the header from wrapping since the search bar is gone */
+  .header-main {
+    padding: 1rem 0;
+    gap: 0.75rem;
+    flex-wrap: nowrap; 
+  }
+}
+
+/* ==========================================================================
+   📱 COMPREHENSIVE MOBILE VIEW FIXES (Max Width: 767px)
+   ========================================================================== */
+@media (max-width: 767px) {
+  
+  /* --- 1. TOP HEADER ALIGNMENT (Source 3 & 4 fixes) --- */
+  .app-header .page-container { padding: 0 1rem; }
+  .header-main {
+    padding: 1rem 0 0.75rem 0;
+    gap: 0.75rem;
+    flex-wrap: wrap; /* Allows search bar to drop down */
+  }
+  .brand-logo { font-size: 1.1rem; flex: 1; }
+  .brand-logo svg { width: 22px; height: 22px; }
+  
+  /* Force search container to full width on a new line */
+  .search-container { 
+    order: 3; 
+    width: 100%; 
+    margin-top: 0.25rem; 
+  }
+  .search-box { padding: 0.25rem 0.75rem; }
+  
+  /* Header Icons */
+  .header-actions { order: 2; gap: 1rem; }
+  .hidden-mobile { display: none !important; } /* Hides desktop labels/wishlist */
+
+
+  /* --- 2. GLOBAL PAGE SPACING (Source 1 & 5 fixes) --- */
+  .main-content {
+    gap: 1.5rem;
+    padding-top: 1rem;
+    /* CRITICAL: Adds space at the bottom so the Fixed Bottom Nav doesn't hide content */
+    padding-bottom: 90px !important; 
+  }
+  
+  .section-header { margin-bottom: 1rem; }
+  .section-title { font-size: 1.1rem; }
+
+
+  /* --- 3. CATEGORY OVERLAP FIX --- */
+  .category-scroll {
     display: flex;
-    gap: 2.5rem;
+    flex-wrap: nowrap; /* Forces a single line */
+    overflow-x: auto;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    padding-bottom: 1rem;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch; /* Smooth iOS swipe */
   }
-  .desktop-link {
-    font-size: var(--text-sm);
-    font-weight: 600;
-    color: var(--neutral-600);
-    transition: color var(--duration-fast) ease;
+  
+  /* Hide the ugly desktop scrollbar */
+  .category-scroll::-webkit-scrollbar { display: none; }
+  
+  .category-item {
+    flex: 0 0 auto; /* PREVENTS SHRINKING & OVERLAPPING */
+    width: 85px; 
+    scroll-snap-align: start;
+    gap: 0.25rem;
   }
-  .desktop-link:hover {
-    color: var(--neutral-900);
+  
+  .cat-img-box { width: 70px; height: 65px; }
+  .cat-img-box::after { height: 35px; bottom: -15px; } /* Scales down the green glow */
+  .cat-name { font-size: 0.7rem; }
+
+
+  /* --- 4. HERO GRID --- */
+  .hero-grid { 
+    grid-template-columns: 1fr; 
+    gap: 1rem;
   }
+  .side-banner { display: none; } /* Focus only on the main banner */
+  .hero-banner { min-height: 180px; border-radius: 12px; }
+  .banner-content { padding: 1.5rem 1.25rem; max-width: 65%; }
+  .hero-banner h1 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+  .hero-banner p { font-size: 0.65rem; margin-bottom: 1rem; line-height: 1.4; }
+  .btn-primary { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
+
+
+  /* --- 5. HORIZONTAL PRODUCT CAROUSEL --- */
+  .product-grid {
+    display: flex;
+    flex-wrap: nowrap; /* Prevents grid stacking */
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    margin-right: -1rem; /* Lets cards bleed to the screen edge */
+    padding-right: 1rem; 
+    -webkit-overflow-scrolling: touch;
+  }
+  .product-grid::-webkit-scrollbar { display: none; }
+  
+  .product-card {
+    flex: 0 0 auto; /* PREVENTS SHRINKING */
+    width: 160px; /* Two cards on screen perfectly */
+    scroll-snap-align: start;
+    gap: 0.5rem;
+  }
+  
+  .prod-img-box { border-radius: 10px; }
+  .prod-title { font-size: 0.8rem; }
+  .price-current { font-size: 0.95rem; }
+  .prod-meta { font-size: 0.65rem; }
+  .wishlist-btn { width: 28px; height: 28px; top: 8px; right: 8px; }
+  .prod-badge { top: 8px; left: 8px; font-size: 0.6rem; padding: 2px 6px; }
+
+
+  /* --- 6. PROMO BENTO GRID --- */
+  .promo-bento { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 1rem; 
+  }
+  .promo-large { min-height: 220px; padding: 1.5rem; }
+  .promo-stack { gap: 1rem; }
+  .promo-card { padding: 1.5rem; }
+  .promo-text h2 { font-size: 1.5rem !important; }
+  .promo-text h3 { font-size: 1.2rem !important; }
+
+
+  /* --- 7. ANIMATED BOTTOM PROMO BANNER --- */
+  .animated-promo-banner {
+    height: 110px;
+    border-radius: 12px;
+  }
+  .promo-subtext { font-size: 0.65rem; margin-bottom: 0.1rem; }
+  .promo-maintext { font-size: 1.1rem; margin-bottom: 0.5rem; }
+  .promo-discount-badge { font-size: 0.7rem; padding: 0.3rem 0.8rem; gap: 0.5rem; }
+  .start-price { font-size: 0.55rem; padding: 0.15rem 0.4rem; }
+  
+  /* Scale down the floating products to prevent them from hiding text */
+  .float-item { border-width: 2px; }
+  .float-1 { width: 50px; height: 50px; left: -10px; top: 10px; }
+  .float-2 { width: 65px; height: 65px; right: 5%; bottom: -10px; }
+  .float-3 { display: none; }
 }

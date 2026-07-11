@@ -1,20 +1,40 @@
-<header class="top-bar-header">
-  <div class="top-bar-container">
-    <a routerLink="/" class="brand-logo">
-      CREATIVE<span class="brand-accent">.COMPUTERS</span>
-    </a>
+<header class="app-header">
+  <div class="page-container">
+    <div class="header-main">
+      
+      <!-- Logo -->
+      <a routerLink="/" class="brand-logo">
+        <mat-icon>layers</mat-icon>
+        <span>CREATIVE COMPUTERS</span>
+      </a>
 
-    <nav class="desktop-nav">
-      <a routerLink="/" class="desktop-link">Home</a>
-      <a routerLink="/shops" class="desktop-link">Shop</a>
-      <a routerLink="/account" class="desktop-link">Account</a>
-    </nav>
+      <!-- Search Bar (Strictly hidden on mobile via class) -->
+      <div class="search-container hidden-mobile">
+        <div class="search-box">
+          <input type="text" placeholder="Search products">
+          <button class="search-btn">
+            <mat-icon>search</mat-icon>
+          </button>
+        </div>
+      </div>
 
-    <a routerLink="/cart" class="cart-anchor">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="icon-svg">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 4.513 7.5h14.974c.577 0 1.054.424 1.119.993ZM9 10.5h.008v.008H9V10.5Zm6 0h.008v.008H15V10.5Z" />
-      </svg>
-      <span class="cart-badge">2</span>
-    </a>
+      <!-- Action Icons -->
+      <div class="header-actions">
+        <a routerLink="/cart" class="action-icon">
+          <mat-icon>shopping_cart</mat-icon>
+          <span class="badge">0</span>
+        </a>
+        <a routerLink="/wishlist" class="action-icon hidden-mobile">
+          <mat-icon>favorite_border</mat-icon>
+        </a>
+        <a routerLink="/account" class="action-account">
+          <div class="avatar">
+            <mat-icon>person_outline</mat-icon>
+          </div>
+          <span class="hidden-mobile">Account</span>
+        </a>
+      </div>
+
+    </div>
   </div>
 </header>

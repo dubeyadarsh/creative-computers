@@ -1,98 +1,92 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
-import { FooterComponent } from "../components/footer/footer";
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { finalize, forkJoin } from 'rxjs';
 import { ShopService, Category, Product } from '../services/shop.service';
-
+import { MatIcon } from "@angular/material/icon";
+import { defaultServerConditions } from 'vite';
 @Component({
-  selector: 'app-home-page',
-  standalone: true,
-  imports: [CommonModule, RouterLink, FooterComponent],
+  selector: 'app-home',
   templateUrl: './home.html',
-  styleUrls: ['./home.css']
+  styleUrls: ['./home.css'],
+  imports: [MatIcon]
 })
-export default class HomePageComponent implements OnInit {
-  private router = inject(Router);
+export default class HomeComponent implements OnInit, OnDestroy {
   private shopService = inject(ShopService);
 
-  isLoadingCategories = true;
-  isLoadingProducts = true;
-
-  allCategories: Category[] = [];
-  homeCategories: Category[] = [];
-  featuredProducts: Product[] = [];
+  // ==========================================
+  // DATA STATE
+  // ==========================================
+  isLoading: boolean = true;
+  categories: Category[] = [];
   trendingProducts: Product[] = [];
-  totalProducts = 0;
+  justArrivedProducts: Product[] = [];
 
-  // New: Wishlist Set to track favorite products
-  wishlist = new Set<string>();
+  // ==========================================
+  // UI STATE (Mobile & Carousel)
+  // ==========================================
+  isCategoryMenuOpen: boolean = false;
+  
+  currentSlide = signal(0);
+  private slideInterval: any;
+  private readonly TOTAL_SLIDES = 3;
 
-  stats = [
-    { label: 'Active Users', value: '150+' },
-    { label: 'Products Sold', value: '2,400+' },
-    { label: 'Categories', value: '100+' },
-    { label: 'Rating', value: '4.9/5' }
-  ];
-
-  reviews = [
-    { name: 'Rahul S.', role: 'Software Engineer', text: 'Got my RTX 4090 delivered in 2 days. The packaging was pristine and the customer service is unmatched.', rating: 5 },
-    { name: 'Priya M.', role: 'UI/UX Designer', text: 'Their custom PC builds are a work of art. My rendering times have been cut in half. Highly recommend!', rating: 5 },
-    { name: 'Amit D.', role: 'Gamer', text: 'Best prices in the market for premium gear. The local AMC service gives me total peace of mind.', rating: 4 },
-    { name: 'Neha K.', role: 'Content Creator', text: 'They helped me set up my entire studio network and CCTV. Flawless execution.', rating: 5 }
-  ];
-
-  ngOnInit() {
-    this.loadHomeData();
+  ngOnInit(): void {
+    this.fetchBackendData();
+    this.startCarousel();
   }
 
-  loadHomeData() {
-    this.shopService.getCategories().subscribe({
-      next: (res) => {
-        this.allCategories = res.data;
-        this.homeCategories = this.allCategories.filter(c => c.show_on_home === true);
-        this.isLoadingCategories = false;
-      },
-      error: () => this.isLoadingCategories = false
-    });
+  ngOnDestroy(): void {
+    this.stopCarousel();
+  }
 
-    this.shopService.getProducts(1, 12).subscribe({
-      next: (res) => {
-        const products = res.data;
-        this.trendingProducts = products.slice(0, 4);
-        this.featuredProducts = products.slice(4, 12);
-        if (res.meta) this.totalProducts = res.meta.total;
-        this.isLoadingProducts = false;
+  fetchBackendData(): void {
+    this.isLoading = true;
+
+    forkJoin({
+      categoriesRes: this.shopService.getCategories(),
+      trendingRes: this.shopService.getTrendingProducts(),
+      newArrivalsRes: this.shopService.getNewArrivals()
+    })
+    .pipe(
+      finalize(() => this.isLoading = false) 
+    )
+    .subscribe({
+      next: (response) => {
+        // MUST append .data to unwrap the array from your ApiResponse object
+        this.categories = response.categoriesRes.data; 
+        this.trendingProducts = response.trendingRes.data;
+        this.justArrivedProducts = response.newArrivalsRes.data;
       },
-      error: () => this.isLoadingProducts = false
+      error: (err) => {
+        console.error('Failed to fetch home page data:', err);
+      }
     });
   }
 
-  // --- New Wishlist Methods ---
-  toggleWishlist(productId: string | undefined): void {
-    if (!productId) return;
-    if (this.wishlist.has(productId)) {
-      this.wishlist.delete(productId);
-    } else {
-      this.wishlist.add(productId);
+  // ==========================================
+  // MOBILE MENU LOGIC
+  // ==========================================
+  toggleCategoryMenu(): void {
+    this.isCategoryMenuOpen = !this.isCategoryMenuOpen;
+  }
+
+  // ==========================================
+  // CAROUSEL LOGIC
+  // ==========================================
+  startCarousel(): void {
+    this.slideInterval = setInterval(() => {
+      this.currentSlide.update(index => (index + 1) % this.TOTAL_SLIDES);
+    }, 5000);
+  }
+
+  stopCarousel(): void {
+    if (this.slideInterval) {
+      clearInterval(this.slideInterval);
     }
   }
 
-  isWishlisted(productId: string | undefined): boolean {
-    if (!productId) return false;
-    return this.wishlist.has(productId);
-  }
-
-  getCategoryName(id: string): string {
-    const cat = this.allCategories.find(c => c.id === id);
-    return cat ? cat.name : 'Component';
-  }
-
-  getPreviewSpecs(prod: Product): string[] {
-    if (!prod.attributes) return [];
-    return Object.keys(prod.attributes).slice(0, 2);
-  }
-
-  shopHardware() {
-    this.router.navigate(['/shops']);
+  goToSlide(index: number): void {
+    this.currentSlide.set(index);
+    this.stopCarousel();
+    this.startCarousel();
   }
 }

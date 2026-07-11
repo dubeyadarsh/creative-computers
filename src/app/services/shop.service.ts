@@ -8,6 +8,7 @@ export interface CategoryAttribute {
 }
 
 export interface Category {
+image_url: any;
   id?: string;
   name: string;
   slug?: string;
@@ -73,5 +74,13 @@ export class ShopService {
   // NEW: Update Product
   updateProduct(id: string, productData: FormData): Observable<ApiResponse<any>> {
     return this.http.put<ApiResponse<any>>(`${this.apiBase}/products?id=${id}`, productData);
+  }
+  // Update these two methods in ShopService
+  getTrendingProducts(): Observable<ApiResponse<Product[]>> {
+    return this.http.get<ApiResponse<Product[]>>(`${this.apiBase}/products?type=trending`);
+  }
+
+  getNewArrivals(): Observable<ApiResponse<Product[]>> {
+    return this.http.get<ApiResponse<Product[]>>(`${this.apiBase}/products?type=new`);
   }
 }

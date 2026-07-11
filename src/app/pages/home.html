@@ -1,188 +1,236 @@
-<div class="home-wrapper">
+<!-- ==========================================
+     1. DYNAMIC CATEGORY NAVIGATION BAR 
+     ========================================== -->
+<nav class="category-nav" style="position: relative; z-index: 50;">
+  <div class="page-container nav-flex">
+    
+    <div class="all-categories" (click)="toggleCategoryMenu()" [class.active-menu]="isCategoryMenuOpen">
+      <mat-icon>{{ isCategoryMenuOpen ? 'close' : 'menu' }}</mat-icon>
+      <span class="all-cat-text">All Categories</span>
+      <mat-icon class="ml-auto all-cat-arrow">expand_more</mat-icon>
+    </div>
+    
+    <div class="nav-links hide-scrollbar">
+      @for (category of categories; track category.id) {
+        <a href="#">{{ category.name }}</a>
+      }
+    </div>
+  </div>
+
+  <div class="mobile-category-dropdown" [class.open]="isCategoryMenuOpen">
+    <div class="dropdown-inner">
+      @for (category of categories; track category.id) {
+        <a href="#" (click)="isCategoryMenuOpen = false">{{ category.name }}</a>
+      }
+    </div>
+  </div>
+</nav>
+
+<div class="page-container main-content">
   
-  <section class="hero-card animate-fade-in">
-    <div class="hero-overlay"></div>
-    <img src="https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?auto=format&fit=crop&w=1200&q=80" alt="Premium Tech" class="hero-bg" />
-    <div class="hero-content">
-      <span class="badge-new-hero glow-effect">Tech.Luxe Exclusives</span>
-      <h2 class="hero-title text-gradient">Elevate Your<br>Digital Workspace.</h2>
-      <p class="hero-subtitle">Premium laptops, pro monitors, and next-gen components curated for elite creators.</p>
-      <button class="hero-btn hover-lift" (click)="shopHardware()">
-        Explore Collection <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </button>
+  <!-- ==========================================
+       2. HERO GRID 
+       ========================================== -->
+  <section class="hero-grid">
+    <div class="carousel-wrapper">
+      <div class="carousel-track" [style.transform]="'translateX(-' + (currentSlide() * 100) + '%)'">
+        
+        <div class="hero-banner carousel-slide">
+          <div class="banner-content text-force-white">
+            <h1>Tech & Unique Products,<br>Curated for You</h1>
+            <p>Discover the latest gadgets, digital tools, and one-of-a-kind items — fast delivery, secure payment, and hassle-free shopping.</p>
+            <button class="btn-primary">Shop Now <mat-icon>arrow_forward</mat-icon></button>
+          </div>
+          <img src="https://images.unsplash.com/photo-1629131726692-1accd0c53ce0?auto=format&fit=crop&w=1200&q=80" alt="Dark Minimalist Workspace" class="banner-bg">
+        </div>
+
+        <div class="hero-banner carousel-slide">
+          <div class="banner-content text-force-white">
+            <h1>Level Up Your<br>Gaming Setup</h1>
+            <p>Experience ultra-fast refresh rates, mechanical precision, and immersive audio with our premium selection.</p>
+            <button class="btn-primary">Explore Gaming <mat-icon>arrow_forward</mat-icon></button>
+          </div>
+          <img src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80" alt="Gaming Setup" class="banner-bg">
+        </div>
+
+        <div class="hero-banner carousel-slide">
+          <div class="banner-content text-force-white">
+            <h1>Pro Audio &<br>Crisp Acoustics</h1>
+            <p>From studio monitors to wireless headsets, find the perfect sound signature for your workflow and entertainment.</p>
+            <button class="btn-primary">View Audio <mat-icon>arrow_forward</mat-icon></button>
+          </div>
+          <img src="https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=1200&q=80" alt="Audio Gadgets" class="banner-bg">
+        </div>
+      </div>
+
+      <div class="carousel-dots">
+        <span class="dot" [class.active]="currentSlide() === 0" (click)="goToSlide(0)"></span>
+        <span class="dot" [class.active]="currentSlide() === 1" (click)="goToSlide(1)"></span>
+        <span class="dot" [class.active]="currentSlide() === 2" (click)="goToSlide(2)"></span>
+      </div>
+    </div>
+    
+    <div class="hero-banner side-banner">
+      <div class="banner-content center-content text-force-white">
+        <h2>Curved<br>Gaming Monitor</h2>
+        <p>Immersive curved display with flagship high refresh rate.</p>
+      </div>
+      <img src="https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=600&q=80" alt="Monitor" class="banner-bg-bottom">
     </div>
   </section>
 
-  <section class="stats-container animate-fade-in-up delay-1">
-    @for (stat of stats; track stat.label) {
-      <div class="stat-item">
-        <h4 class="stat-value">{{ stat.value }}</h4>
-        <p class="stat-label">{{ stat.label }}</p>
-      </div>
-    }
-  </section>
-
-  <section class="section-container animate-fade-in-up delay-2 pb-2">
-    <div class="section-header-row">
-      <h3 class="section-heading">Shop by Category</h3>
+  <!-- ==========================================
+       DYNAMIC BACKEND DATA SECTIONS
+       ========================================== -->
+  @if (isLoading) {
+    <div class="loader-container">
+      <div class="spinner"></div>
+      <p>Loading curated products...</p>
     </div>
-    @if (isLoadingCategories) {
-      <div class="horizontal-scroll hide-scrollbar">
-        @for (i of [1,2,3,4]; track i) { <div class="category-card skeleton-card"></div> }
+  } @else {
+    
+    <!-- 3. EXPANDED CATEGORIES -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Shop by Category</h2>
+        <a href="#" class="view-all">View All <mat-icon>arrow_forward</mat-icon></a>
       </div>
-    } @else {
-      <div class="horizontal-scroll hide-scrollbar snap-mandatory">
-        @for (cat of homeCategories; track cat.id) {
-          <a [routerLink]="['/shops']" [queryParams]="{category: cat.id}" class="category-card hover-lift">
-            <img src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=400&q=80" class="category-img" alt=""/>
-            <div class="category-overlay"></div>
-            <div class="category-content">
-              <span class="category-title">{{ cat.name }}</span>
-              <div class="category-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
-            </div>
+      
+      <div class="category-scroll hide-scrollbar">
+        @for (category of categories; track category.id) {
+          <a href="#" class="category-item">
+            <div class="cat-img-box"><img [src]="category.image_url" [alt]="category.name"></div>
+            <span class="cat-name">{{ category.name }}</span>
           </a>
         }
       </div>
-    }
-  </section>
+    </section>
 
-  <section class="section-container pb-2">
-    <div class="section-header-row">
-      <h3 class="section-heading"><span class="emoji-icon">🔥</span> Trending Now</h3>
-    </div>
-    @if (isLoadingProducts) {
-      <div class="horizontal-scroll hide-scrollbar">
-        @for (i of [1,2,3,4]; track i) { <div class="product-card skeleton-card"></div> }
+    <!-- 4. TRENDING RIGHT NOW -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Trending Right Now</h2>
+        <a href="#" class="view-all">View All <mat-icon>arrow_forward</mat-icon></a>
       </div>
-    } @else {
-      <div class="horizontal-scroll hide-scrollbar snap-mandatory">
-        @for (prod of trendingProducts; track prod.id) {
-          <div class="product-card premium-card hover-lift">
-            <div class="product-img-wrapper" routerLink="/product-details">
-              <img [src]="prod.image_urls?.[0] || 'assets/placeholder.jpg'" [alt]="prod.name" class="product-img"/>
-              <span class="badge-status trending">#1 In Category</span>
+
+      <div class="product-grid">
+        @for (product of trendingProducts; track product.id) {
+          <div class="product-card">
+            <div class="prod-img-box">
+              <span class="price-tag">
+                <span class="price-current">₹{{ product.price  }}</span>
+              </span>
+              <button class="wishlist-btn"><mat-icon>favorite_border</mat-icon></button>
+              
+              <!-- Safe fallback for image_urls array -->
+              <img [src]="product.image_urls && product.image_urls.length > 0 ? product.image_urls[0] : 'https://placehold.co/300x300?text=No+Image'" [alt]="product.name">
             </div>
-            <div class="product-info">
-              <span class="product-brand">{{ getCategoryName(prod.category_id) }}</span>
-              <h4 class="product-name truncate-2" routerLink="/product-details">{{ prod.name }}</h4>
-              <div class="product-footer">
-                <span class="product-price">₹ {{ prod.price.toLocaleString('en-US') }}</span>
-                <button class="btn-add-premium" [disabled]="prod.stock === 0">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="2.5" d="M12 5v14m-7-7h14"></path></svg>
-                  <span>Add</span>
-                </button>
+            <div class="prod-info">
+              <h3 class="prod-title">{{ product.name }}</h3>
+              <div class="prod-meta">
+                <div class="stars"><span class="star-icons">★★★★★</span></div>
+                <span class="stock-status in-stock">
+                  {{ product.stock > 0 ? 'In Stock' : 'Out of Stock' }}
+                </span>
               </div>
             </div>
           </div>
         }
       </div>
-    }
-  </section>
+    </section>
 
-  <section class="section-container pb-2">
-    <div class="section-header-row">
-      <h3 class="section-heading">New Arrivals</h3>
-      <a routerLink="/shops" class="view-all-link">View All Collection &rarr;</a>
-    </div>
-    @if (isLoadingProducts) {
-      <div class="horizontal-scroll hide-scrollbar">
-        @for (i of [1,2,3,4]; track i) { <div class="product-card skeleton-card"></div> }
+    <!-- 5. PROMO BENTO GRID (Static Refined) -->
+    <section class="promo-bento">
+      <div class="promo-card promo-large light-card">
+        <div class="promo-text">
+          <h2 class="promo-title">JONSBO BO400</h2>
+          <p class="promo-desc">Premium Minimalist ITX Build</p>
+          <button class="btn-primary hover-scale" style="margin-top: 10px;">
+            Order Now <mat-icon style="font-size: 18px; width: 18px; height: 18px;">chevron_right</mat-icon>
+          </button>
+        </div>
+        <img src="https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&w=600&q=80" alt="PC Case" class="promo-img-bottom">
       </div>
-    } @else {
-      <div class="horizontal-scroll hide-scrollbar snap-mandatory">
-        @for (prod of featuredProducts; track prod.id) {
-          <div class="product-card premium-card hover-lift">
-            <div class="product-img-wrapper" routerLink="/product-details">
-              <img [src]="prod.image_urls?.[0] || 'assets/placeholder.jpg'" [alt]="prod.name" class="product-img"/>
-              @if (prod.stock < 5 && prod.stock > 0) { <span class="badge-status warning">Low Stock</span> }
+
+      <div class="promo-stack">
+        <div class="promo-card split-card">
+          <div class="promo-text">
+            <h3 class="promo-subtitle">Best Deal 2026</h3>
+            <p class="promo-desc-sm">Shark X2 Pro Mouse</p>
+            <button class="btn-link hover-scale">Shop Deal</button>
+          </div>
+          <img src="https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?auto=format&fit=crop&w=300&q=80" alt="Mouse" class="promo-img-framed">
+        </div>
+        
+        <div class="promo-card split-card dark-card">
+          <div class="promo-text">
+            <h3 class="promo-subtitle">Pro Vision</h3>
+            <p class="promo-desc-sm">Curved Ultra-Wide</p>
+            <button class="btn-link hover-scale">Explore</button>
+          </div>
+          <img src="https://images.unsplash.com/photo-1543605397-7679366df6cc?auto=format&fit=crop&w=300&q=80" alt="Monitor" class="promo-img-framed">
+        </div>
+      </div>
+
+      <div class="promo-card promo-large image-bg-card">
+        <div class="promo-overlay"></div>
+        <img src="https://images.unsplash.com/photo-1595225476474-87563907a212?auto=format&fit=crop&w=600&q=80" alt="Keyboard" class="promo-img-cover">
+        <div class="promo-text bottom-right-text">
+          <h2 class="promo-title">MECHA<br>KEYBOARD</h2>
+          <p class="promo-desc">For Gaming & Pro Typing</p>
+          <button class="btn-white hover-scale" style="margin-top: 10px;">
+            Shop Now <mat-icon style="font-size: 18px; width: 18px; height: 18px;">chevron_right</mat-icon>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. JUST ARRIVED -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Just Arrived</h2>
+        <a href="#" class="view-all">View All <mat-icon>arrow_forward</mat-icon></a>
+      </div>
+
+      <div class="product-grid">
+        @for (product of justArrivedProducts; track product.id) {
+          <div class="product-card">
+            <div class="prod-img-box">
+              <span class="price-tag">
+                <span class="price-current">₹{{ product.price  }}</span>
+              </span>
+              <button class="wishlist-btn"><mat-icon>favorite_border</mat-icon></button>
+              
+              <img [src]="product.image_urls && product.image_urls.length > 0 ? product.image_urls[0] : 'https://placehold.co/300x300?text=No+Image'" [alt]="product.name">
             </div>
-            <div class="product-info">
-              <span class="product-brand">{{ getCategoryName(prod.category_id) }}</span>
-              <h4 class="product-name truncate-2" routerLink="/product-details">{{ prod.name }}</h4>
-              <div class="spec-tags">
-                @for (key of getPreviewSpecs(prod); track key) { <span class="spec-tag">{{ prod.attributes[key] }}</span> }
-              </div>
-              <div class="product-footer">
-                <span class="product-price">₹{{ prod.price.toLocaleString('en-US') }}</span>
-                <button class="btn-add-premium" [disabled]="prod.stock === 0">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="2.5" d="M12 5v14m-7-7h14"></path></svg>
-                  <span>Add</span>
-                </button>
+            <div class="prod-info">
+              <h3 class="prod-title">{{ product.name }}</h3>
+              <div class="prod-meta">
+                <div class="stars"><span class="star-icons">★★★★★</span></div>
+                <span class="stock-status in-stock">
+                  {{ product.stock > 0 ? 'In Stock' : 'Out of Stock' }}
+                </span>
               </div>
             </div>
           </div>
         }
       </div>
-    }
-  </section>
+    </section>
 
-  <section class="section-container">
-    <h3 class="section-heading mb-4">Loved by Professionals</h3>
-    <div class="horizontal-scroll hide-scrollbar snap-mandatory">
-      @for (review of reviews; track review.name) {
-        <div class="review-card premium-card hover-lift">
-          <div class="stars">★★★★★</div>
-          <p class="review-text">"{{ review.text }}"</p>
-          <div class="review-author">
-            <div class="author-avatar">{{ review.name.charAt(0) }}</div>
-            <div class="author-details">
-              <span class="author-name">{{ review.name }}</span>
-              <span class="author-role">{{ review.role }}</span>
-            </div>
-          </div>
-        </div>
-      }
-    </div>
-  </section>
-
-  <section class="section-container">
-    <h3 class="section-heading mb-4">Professional Services</h3>
-    <div class="services-grid">
-      <div class="service-card dark premium-card hover-lift">
-        <div class="service-icon dark-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg></div>
-        <h4 class="service-title">Computer Repair</h4>
-        <p class="service-desc">Expert hardware diagnostics and precision motherboard repairs.</p>
-      </div>
-      <div class="service-card light premium-card hover-lift">
-        <div class="service-icon light-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></div>
-        <h4 class="service-title">CCTV Installation</h4>
-        <p class="service-desc">Enterprise-grade security deployments and smart setups.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="section-container">
-    <div class="contact-section shadow-glow premium-card">
-      <div class="contact-info">
-        <h2 class="contact-title">Need Expert Assistance?</h2>
-        <p class="contact-desc">From complex hardware repairs to setting up an entire office network, our certified technicians are ready.</p>
-        <div class="contact-methods">
-          <div class="contact-method"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg> <span>+91 98765 43210</span></div>
-          <div class="contact-method"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg> <span>support&#64;tech.luxe</span></div>
+    <!-- 7. ANIMATED BEST-SELLING PROMO BANNER (Static) -->
+    <section class="animated-promo-banner">
+      <div class="promo-banner-content">
+        <div class="banner-text-wrapper">
+          <h3 class="promo-subtext">Exciting Deals On</h3>
+          <h2 class="promo-maintext">Best Selling GADGETS</h2>
+          <div class="promo-discount-badge">20% OFF <span class="start-price">START FROM ₹1,200/-</span></div>
         </div>
       </div>
-      <div class="contact-form-card">
-        <form class="contact-form">
-          <div class="form-row">
-            <div class="form-group"><label>Your Name</label><input type="text" class="form-input" placeholder="John Doe" required></div>
-            <div class="form-group"><label>Phone Number</label><input type="tel" class="form-input" placeholder="+91 00000 00000" required></div>
-          </div>
-          <div class="form-group">
-            <label>Service Required</label>
-            <select class="form-input" required>
-              <option value="" disabled selected>Select a service...</option>
-              <option value="repair">Computer Repair</option>
-              <option value="network">Network Setup</option>
-              <option value="other">Other Inquiry</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Message</label>
-            <textarea class="form-input form-textarea" placeholder="Describe your issue..." required></textarea>
-          </div>
-          <button type="submit" class="btn-submit hover-lift">Request Service</button>
-        </form>
-      </div>
-    </div>
-  </section>
+      
+      <img src="https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=200&q=80" class="float-item float-1" alt="Watch">
+      <img src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&w=200&q=80" class="float-item float-2" alt="Headphones">
+      <img src="https://images.unsplash.com/photo-1527814050087-379381547994?auto=format&fit=crop&w=200&q=80" class="float-item float-3" alt="Mouse">
+    </section>
+    
+  } 
 </div>
