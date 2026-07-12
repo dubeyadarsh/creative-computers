@@ -4,23 +4,15 @@
 <nav class="category-nav" style="position: relative; z-index: 50;">
   <div class="page-container nav-flex">
     
-    <div class="all-categories" (click)="toggleCategoryMenu()" [class.active-menu]="isCategoryMenuOpen">
-      <mat-icon>{{ isCategoryMenuOpen ? 'close' : 'menu' }}</mat-icon>
+    <a class="all-categories" role="button" tabindex="0" (click)="goToShops()" (keydown.enter)="goToShops()">
+      <mat-icon>widgets</mat-icon>
       <span class="all-cat-text">All Categories</span>
       <mat-icon class="ml-auto all-cat-arrow">expand_more</mat-icon>
-    </div>
+    </a>
     
     <div class="nav-links hide-scrollbar">
       @for (category of categories; track category.id) {
-        <a href="#">{{ category.name }}</a>
-      }
-    </div>
-  </div>
-
-  <div class="mobile-category-dropdown" [class.open]="isCategoryMenuOpen">
-    <div class="dropdown-inner">
-      @for (category of categories; track category.id) {
-        <a href="#" (click)="isCategoryMenuOpen = false">{{ category.name }}</a>
+        <a role="button" tabindex="0" (click)="goToCategory(category.id)" (keydown.enter)="goToCategory(category.id)">{{ category.name }}</a>
       }
     </div>
   </div>
@@ -39,7 +31,7 @@
           <div class="banner-content text-force-white">
             <h1>Tech & Unique Products,<br>Curated for You</h1>
             <p>Discover the latest gadgets, digital tools, and one-of-a-kind items — fast delivery, secure payment, and hassle-free shopping.</p>
-            <button class="btn-primary">Shop Now <mat-icon>arrow_forward</mat-icon></button>
+            <button class="btn-primary" routerLink="/shops">Shop Now <mat-icon>arrow_forward</mat-icon></button>
           </div>
           <img src="https://images.unsplash.com/photo-1629131726692-1accd0c53ce0?auto=format&fit=crop&w=1200&q=80" alt="Dark Minimalist Workspace" class="banner-bg">
         </div>
@@ -48,7 +40,7 @@
           <div class="banner-content text-force-white">
             <h1>Level Up Your<br>Gaming Setup</h1>
             <p>Experience ultra-fast refresh rates, mechanical precision, and immersive audio with our premium selection.</p>
-            <button class="btn-primary">Explore Gaming <mat-icon>arrow_forward</mat-icon></button>
+            <button class="btn-primary" [routerLink]="['/shops']" [queryParams]="{ type: 'trending' }">Explore Gaming <mat-icon>arrow_forward</mat-icon></button>
           </div>
           <img src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80" alt="Gaming Setup" class="banner-bg">
         </div>
@@ -57,7 +49,7 @@
           <div class="banner-content text-force-white">
             <h1>Pro Audio &<br>Crisp Acoustics</h1>
             <p>From studio monitors to wireless headsets, find the perfect sound signature for your workflow and entertainment.</p>
-            <button class="btn-primary">View Audio <mat-icon>arrow_forward</mat-icon></button>
+            <button class="btn-primary" routerLink="/shops">View Audio <mat-icon>arrow_forward</mat-icon></button>
           </div>
           <img src="https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?auto=format&fit=crop&w=1200&q=80" alt="Audio Gadgets" class="banner-bg">
         </div>
@@ -83,9 +75,32 @@
        DYNAMIC BACKEND DATA SECTIONS
        ========================================== -->
   @if (isLoading) {
-    <div class="loader-container">
-      <div class="spinner"></div>
-      <p>Loading curated products...</p>
+    <div class="skeleton-wrap">
+      <!-- Categories skeleton (10 boxes) -->
+      <div class="sk-section">
+        <div class="sk-heading skeleton-box"></div>
+        <div class="sk-cat-row">
+          @for (i of [1,2,3,4,5,6,7,8,9,10]; track i) {
+            <div class="sk-cat">
+              <div class="sk-cat-img skeleton-box"></div>
+              <div class="sk-cat-label skeleton-box"></div>
+            </div>
+          }
+        </div>
+      </div>
+      <!-- Product cards skeleton (4 boxes) -->
+      <div class="sk-section">
+        <div class="sk-heading skeleton-box"></div>
+        <div class="sk-card-row">
+          @for (i of [1,2,3,4]; track i) {
+            <div class="sk-card">
+              <div class="sk-card-img skeleton-box"></div>
+              <div class="sk-card-line skeleton-box"></div>
+              <div class="sk-card-line short skeleton-box"></div>
+            </div>
+          }
+        </div>
+      </div>
     </div>
   } @else {
     
@@ -93,13 +108,13 @@
     <section class="section">
       <div class="section-header">
         <h2 class="section-title">Shop by Category</h2>
-        <a href="#" class="view-all">View All <mat-icon>arrow_forward</mat-icon></a>
+        <a routerLink="/shops" class="view-all">View All <mat-icon>arrow_forward</mat-icon></a>
       </div>
       
       <div class="category-scroll hide-scrollbar">
         @for (category of categories; track category.id) {
-          <a href="#" class="category-item">
-            <div class="cat-img-box"><img [src]="category.image_url" [alt]="category.name"></div>
+          <a role="button" tabindex="0" (click)="goToCategory(category.id)" (keydown.enter)="goToCategory(category.id)" class="category-item">
+            <div class="cat-img-box"><img [src]="category.image_urls && category.image_urls.length > 0 ? category.image_urls[0] : 'https://placehold.co/300x300?text=No+Image'" [alt]="category.name"></div>
             <span class="cat-name">{{ category.name }}</span>
           </a>
         }
@@ -110,17 +125,19 @@
     <section class="section">
       <div class="section-header">
         <h2 class="section-title">Trending Right Now</h2>
-        <a href="#" class="view-all">View All <mat-icon>arrow_forward</mat-icon></a>
+        <a [routerLink]="['/shops']" [queryParams]="{ type: 'trending' }" class="view-all">View All <mat-icon>arrow_forward</mat-icon></a>
       </div>
 
       <div class="product-grid">
         @for (product of trendingProducts; track product.id) {
-          <div class="product-card">
+          <div class="product-card" (click)="goToProduct(product)" style="cursor:pointer;">
             <div class="prod-img-box">
               <span class="price-tag">
                 <span class="price-current">₹{{ product.price  }}</span>
               </span>
-              <button class="wishlist-btn"><mat-icon>favorite_border</mat-icon></button>
+              <button class="wishlist-btn" [class.active]="isFavorite(product)" (click)="toggleFavorite(product, $event)">
+                <mat-icon>{{ isFavorite(product) ? 'favorite' : 'favorite_border' }}</mat-icon>
+              </button>
               
               <!-- Safe fallback for image_urls array -->
               <img [src]="product.image_urls && product.image_urls.length > 0 ? product.image_urls[0] : 'https://placehold.co/300x300?text=No+Image'" [alt]="product.name">
@@ -133,6 +150,9 @@
                   {{ product.stock > 0 ? 'In Stock' : 'Out of Stock' }}
                 </span>
               </div>
+              <button class="add-cart-btn" (click)="addToCart(product, $event)" [disabled]="product.stock === 0">
+                <mat-icon>add_shopping_cart</mat-icon> Add to Cart
+              </button>
             </div>
           </div>
         }
@@ -145,7 +165,7 @@
         <div class="promo-text">
           <h2 class="promo-title">JONSBO BO400</h2>
           <p class="promo-desc">Premium Minimalist ITX Build</p>
-          <button class="btn-primary hover-scale" style="margin-top: 10px;">
+          <button class="btn-primary hover-scale" style="margin-top: 10px;" routerLink="/shops">
             Order Now <mat-icon style="font-size: 18px; width: 18px; height: 18px;">chevron_right</mat-icon>
           </button>
         </div>
@@ -157,7 +177,7 @@
           <div class="promo-text">
             <h3 class="promo-subtitle">Best Deal 2026</h3>
             <p class="promo-desc-sm">Shark X2 Pro Mouse</p>
-            <button class="btn-link hover-scale">Shop Deal</button>
+            <button class="btn-link hover-scale" routerLink="/shops">Shop Deal</button>
           </div>
           <img src="https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?auto=format&fit=crop&w=300&q=80" alt="Mouse" class="promo-img-framed">
         </div>
@@ -166,19 +186,19 @@
           <div class="promo-text">
             <h3 class="promo-subtitle">Pro Vision</h3>
             <p class="promo-desc-sm">Curved Ultra-Wide</p>
-            <button class="btn-link hover-scale">Explore</button>
+            <button class="btn-link hover-scale" routerLink="/shops">Explore</button>
           </div>
-          <img src="https://images.unsplash.com/photo-1543605397-7679366df6cc?auto=format&fit=crop&w=300&q=80" alt="Monitor" class="promo-img-framed">
+          <img src="https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?auto=format&fit=crop&w=400&q=80" alt="Monitor" class="promo-img-framed">
         </div>
       </div>
 
       <div class="promo-card promo-large image-bg-card">
         <div class="promo-overlay"></div>
-        <img src="https://images.unsplash.com/photo-1595225476474-87563907a212?auto=format&fit=crop&w=600&q=80" alt="Keyboard" class="promo-img-cover">
+        <img src="https://images.unsplash.com/photo-1618384887929-16ec33fab9ef?auto=format&fit=crop&w=800&q=80" alt="Keyboard" class="promo-img-cover">
         <div class="promo-text bottom-right-text">
           <h2 class="promo-title">MECHA<br>KEYBOARD</h2>
           <p class="promo-desc">For Gaming & Pro Typing</p>
-          <button class="btn-white hover-scale" style="margin-top: 10px;">
+          <button class="btn-white hover-scale" style="margin-top: 10px;" routerLink="/shops">
             Shop Now <mat-icon style="font-size: 18px; width: 18px; height: 18px;">chevron_right</mat-icon>
           </button>
         </div>
@@ -189,17 +209,19 @@
     <section class="section">
       <div class="section-header">
         <h2 class="section-title">Just Arrived</h2>
-        <a href="#" class="view-all">View All <mat-icon>arrow_forward</mat-icon></a>
+        <a [routerLink]="['/shops']" [queryParams]="{ type: 'new', sort: 'newest' }" class="view-all">View All <mat-icon>arrow_forward</mat-icon></a>
       </div>
 
       <div class="product-grid">
         @for (product of justArrivedProducts; track product.id) {
-          <div class="product-card">
+          <div class="product-card" (click)="goToProduct(product)" style="cursor:pointer;">
             <div class="prod-img-box">
               <span class="price-tag">
                 <span class="price-current">₹{{ product.price  }}</span>
               </span>
-              <button class="wishlist-btn"><mat-icon>favorite_border</mat-icon></button>
+              <button class="wishlist-btn" [class.active]="isFavorite(product)" (click)="toggleFavorite(product, $event)">
+                <mat-icon>{{ isFavorite(product) ? 'favorite' : 'favorite_border' }}</mat-icon>
+              </button>
               
               <img [src]="product.image_urls && product.image_urls.length > 0 ? product.image_urls[0] : 'https://placehold.co/300x300?text=No+Image'" [alt]="product.name">
             </div>
@@ -211,6 +233,9 @@
                   {{ product.stock > 0 ? 'In Stock' : 'Out of Stock' }}
                 </span>
               </div>
+              <button class="add-cart-btn" (click)="addToCart(product, $event)" [disabled]="product.stock === 0">
+                <mat-icon>add_shopping_cart</mat-icon> Add to Cart
+              </button>
             </div>
           </div>
         }
@@ -218,7 +243,7 @@
     </section>
 
     <!-- 7. ANIMATED BEST-SELLING PROMO BANNER (Static) -->
-    <section class="animated-promo-banner">
+    <section class="animated-promo-banner" routerLink="/shops" style="cursor: pointer;">
       <div class="promo-banner-content">
         <div class="banner-text-wrapper">
           <h3 class="promo-subtext">Exciting Deals On</h3>
@@ -231,6 +256,76 @@
       <img src="https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?auto=format&fit=crop&w=200&q=80" class="float-item float-2" alt="Headphones">
       <img src="https://images.unsplash.com/photo-1527814050087-379381547994?auto=format&fit=crop&w=200&q=80" class="float-item float-3" alt="Mouse">
     </section>
-    
+
+    <!-- STATS BAND -->
+    <section class="stats-band">
+      <div class="stat-card">
+        <div class="stat-card__icon"><mat-icon>groups</mat-icon></div>
+        <div class="stat-card__num">1000+</div>
+        <div class="stat-card__label">Happy Customers</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__icon"><mat-icon>inventory_2</mat-icon></div>
+        <div class="stat-card__num">500+</div>
+        <div class="stat-card__label">Products</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__icon"><mat-icon>category</mat-icon></div>
+        <div class="stat-card__num">{{ categories.length || 20 }}+</div>
+        <div class="stat-card__label">Categories</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__icon"><mat-icon>star</mat-icon></div>
+        <div class="stat-card__num">4.9★</div>
+        <div class="stat-card__label">Customer Rating</div>
+      </div>
+    </section>
+
+    <!-- 8. CONTACT SECTION -->
+    <section class="contact-section" id="contact">
+      <div class="contact-grid">
+        <div class="contact-info">
+          <h2 class="contact-title">Visit our store in Mariahu</h2>
+          <ul class="contact-points">
+            <li><mat-icon>mail</mat-icon> helpdesk&#64;creativecomputersmariahu.in</li>
+            <li><mat-icon>schedule</mat-icon> Mon – Sat, 10:00 AM – 7:00 PM</li>
+            <li><mat-icon>verified_user</mat-icon> Genuine products &amp; secure checkout</li>
+          </ul>
+
+          <div class="contact-map">
+            <iframe
+              title="Creative Computers Mariahu location"
+              src="https://www.google.com/maps?q=Mariahu%2C+Jaunpur%2C+Uttar+Pradesh+222161&output=embed"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"></iframe>
+          </div>
+        </div>
+
+        <form class="contact-form" (ngSubmit)="submitContact()">
+          <div class="cf-row">
+            <div class="cf-field">
+              <label>Name</label>
+              <input type="text" name="name" [(ngModel)]="contact.name" placeholder="Your name" required />
+            </div>
+            <div class="cf-field">
+              <label>Email</label>
+              <input type="email" name="email" [(ngModel)]="contact.email" placeholder="you@example.com" required />
+            </div>
+          </div>
+          <div class="cf-field">
+            <label>Subject</label>
+            <input type="text" name="subject" [(ngModel)]="contact.subject" placeholder="How can we help?" />
+          </div>
+          <div class="cf-field">
+            <label>Message</label>
+            <textarea name="message" rows="4" [(ngModel)]="contact.message" placeholder="Write your message…" required></textarea>
+          </div>
+          <button type="submit" class="cf-submit" [disabled]="contactSending()">
+            {{ contactSending() ? 'Sending…' : 'Send message' }}
+          </button>
+        </form>
+      </div>
+    </section>
+
   } 
 </div>

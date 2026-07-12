@@ -1,0 +1,161 @@
+<div class="cart-page">
+
+  <!-- ══════════ EMPTY ══════════ -->
+  @if (cart.isEmpty() && step() !== 'done') {
+    <div class="empty-state">
+      <div class="empty-state__icon">🛒</div>
+      <h2>Your cart is empty</h2>
+      <p>Looks like you haven’t added anything yet.</p>
+      <button class="btn-primary" routerLink="/shops">Start shopping</button>
+    </div>
+  }
+
+  <!-- ══════════ CART STEP ══════════ -->
+  @else if (step() === 'cart') {
+    <h1 class="page-title">Your Cart <span class="count">({{ cart.count() }})</span></h1>
+
+    <div class="cart-layout">
+      <div class="cart-items">
+        @for (item of cart.items(); track item.id) {
+          <div class="cart-card">
+            <img [src]="item.image" [alt]="item.name" class="cart-img" [routerLink]="['/product-details']" [queryParams]="{ id: item.id }" />
+            <div class="cart-details">
+              <h3 class="product-name" [routerLink]="['/product-details']" [queryParams]="{ id: item.id }">{{ item.name }}</h3>
+              <p class="product-unit">₹{{ item.price | number:'1.0-0' }} each</p>
+              <div class="price-qty-row">
+                <span class="price">₹{{ item.price * item.qty | number:'1.0-0' }}</span>
+                <div class="qty-selector">
+                  <button (click)="dec(item.id)" [disabled]="item.qty <= 1">−</button>
+                  <input type="text" [value]="item.qty" readonly />
+                  <button (click)="inc(item.id)" [disabled]="item.stock ? item.qty >= item.stock : false">+</button>
+                </div>
+              </div>
+            </div>
+            <button class="remove-btn" (click)="remove(item.id)" aria-label="Remove">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+          </div>
+        }
+      </div>
+
+      <div class="cart-summary">
+        <h3 class="summary-title">Order Summary</h3>
+        <div class="summary-row"><span class="muted">Subtotal</span><span class="bold">₹{{ cart.subtotal() | number:'1.0-0' }}</span></div>
+        <div class="summary-row">
+          <span class="muted">Shipping</span>
+          @if (shipping() === 0) { <span class="free">FREE</span> } @else { <span class="bold">₹{{ shipping() }}</span> }
+        </div>
+        @if (shipping() > 0) {
+          <p class="ship-hint">Add ₹{{ 499 - cart.subtotal() | number:'1.0-0' }} more for free delivery</p>
+        }
+        <div class="summary-divider"></div>
+        <div class="summary-row total"><span>Total</span><span>₹{{ total() | number:'1.0-0' }}</span></div>
+        <button class="btn-primary checkout-btn" (click)="proceed()">Proceed to Checkout</button>
+        <a routerLink="/shops" class="continue-link">Continue shopping</a>
+      </div>
+    </div>
+  }
+
+  <!-- ══════════ ADDRESS STEP ══════════ -->
+  @else if (step() === 'address') {
+    <button class="back-link" (click)="backToCart()">← Back to cart</button>
+    <h1 class="page-title">Delivery & Payment</h1>
+
+    <div class="cart-layout">
+      <div class="checkout-main">
+        <section class="checkout-card">
+          <h3 class="checkout-card__title">Delivery address</h3>
+
+          @if (addresses().length > 0) {
+            <div class="address-list">
+              @for (addr of addresses(); track addr.id) {
+                <label class="address-option" [class.selected]="selectedAddressId() === addr.id">
+                  <input type="radio" name="addr" [checked]="selectedAddressId() === addr.id" (change)="selectAddress(addr.id!)" />
+                  <div class="address-body">
+                    <div class="address-name">
+                      {{ addr.full_name }}
+                      @if (addr.is_default) { <span class="chip">Default</span> }
+                    </div>
+                    <div class="address-text">
+                      {{ addr.line1 }}@if (addr.line2) {, {{ addr.line2 }}}, {{ addr.city }}, {{ addr.state }} {{ addr.postal_code }}, {{ addr.country }}
+                    </div>
+                    <div class="address-phone">📞 {{ addr.phone }}</div>
+                  </div>
+                </label>
+              }
+            </div>
+          }
+
+          <button class="add-address-toggle" (click)="toggleAddressForm()">
+            {{ showAddressForm() ? '× Cancel' : '+ Add a new address' }}
+          </button>
+
+          @if (showAddressForm()) {
+            <div class="address-form">
+              <div class="af-row">
+                <input type="text" placeholder="Full name *" [(ngModel)]="form.full_name" />
+                <input type="tel" placeholder="Phone *" [(ngModel)]="form.phone" />
+              </div>
+              <input type="text" placeholder="Address line 1 *" [(ngModel)]="form.line1" />
+              <input type="text" placeholder="Address line 2 (optional)" [(ngModel)]="form.line2" />
+              <div class="af-row">
+                <input type="text" placeholder="City *" [(ngModel)]="form.city" />
+                <input type="text" placeholder="State" [(ngModel)]="form.state" />
+              </div>
+              <div class="af-row">
+                <input type="text" placeholder="Postal code *" [(ngModel)]="form.postal_code" />
+                <input type="text" placeholder="Country" [(ngModel)]="form.country" />
+              </div>
+              <label class="af-default">
+                <input type="checkbox" [(ngModel)]="form.is_default" /> Set as default address
+              </label>
+              <button class="btn-primary" (click)="saveAddress()">Save address</button>
+            </div>
+          }
+        </section>
+
+        <section class="checkout-card">
+          <h3 class="checkout-card__title">Payment method</h3>
+          <label class="pay-option selected">
+            <input type="radio" name="pay" checked />
+            <span>Cash on Delivery</span>
+          </label>
+        </section>
+      </div>
+
+      <div class="cart-summary">
+        <h3 class="summary-title">Order Summary</h3>
+        @for (item of cart.items(); track item.id) {
+          <div class="summary-row"><span class="muted">{{ item.name }} × {{ item.qty }}</span><span>₹{{ item.price * item.qty | number:'1.0-0' }}</span></div>
+        }
+        <div class="summary-divider"></div>
+        <div class="summary-row"><span class="muted">Subtotal</span><span class="bold">₹{{ cart.subtotal() | number:'1.0-0' }}</span></div>
+        <div class="summary-row">
+          <span class="muted">Shipping</span>
+          @if (shipping() === 0) { <span class="free">FREE</span> } @else { <span class="bold">₹{{ shipping() }}</span> }
+        </div>
+        <div class="summary-divider"></div>
+        <div class="summary-row total"><span>Total</span><span>₹{{ total() | number:'1.0-0' }}</span></div>
+        <button class="btn-primary checkout-btn" (click)="placeOrder()" [disabled]="placing() || !selectedAddressId()">
+          {{ placing() ? 'Placing order…' : 'Place Order' }}
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ══════════ DONE STEP ══════════ -->
+  @else if (step() === 'done') {
+    <div class="order-success">
+      <div class="success-check">✓</div>
+      <h2>Order placed successfully!</h2>
+      <p>Thank you for shopping with Creative Computers. Your order is being processed.</p>
+      @if (lastOrderId()) {
+        <p class="order-ref">Order ID: <strong>#{{ lastOrderId()!.slice(0, 8) }}</strong></p>
+      }
+      <div class="success-actions">
+        <button class="btn-primary" routerLink="/account">View my orders</button>
+        <button class="btn-outline" routerLink="/shops">Continue shopping</button>
+      </div>
+    </div>
+  }
+</div>

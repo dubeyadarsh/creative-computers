@@ -1,16 +1,32 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
-import { ShopService, Category, Product } from '../services/shop.service';
+import { ShopService} from '../services/shop.service';
 import { MatIcon } from "@angular/material/icon";
-import { defaultServerConditions } from 'vite';
+import { Category, Product } from '../services/shop.types';
+import { CartService } from '../services/cart.service';
+import { FavoritesService } from '../services/favorites.service';
+import { NotificationService } from '../services/notification.service';
+import { HttpClient } from '@angular/common/http';
 @Component({
   selector: 'app-home',
   templateUrl: './home.html',
   styleUrls: ['./home.css'],
-  imports: [MatIcon]
+  imports: [MatIcon, RouterModule, CommonModule, FormsModule]
 })
 export default class HomeComponent implements OnInit, OnDestroy {
   private shopService = inject(ShopService);
+  private router = inject(Router);
+  private cart = inject(CartService);
+  private favorites = inject(FavoritesService);
+  private notify = inject(NotificationService);
+  private http = inject(HttpClient);
+
+  // Contact form
+  contact = { name: '', email: '', subject: '', message: '' };
+  contactSending = signal(false);
 
   // ==========================================
   // DATA STATE
@@ -88,5 +104,74 @@ export default class HomeComponent implements OnInit, OnDestroy {
     this.currentSlide.set(index);
     this.stopCarousel();
     this.startCarousel();
+  }
+
+  // ==========================================
+  // PRODUCT INTERACTIONS
+  // ==========================================
+  goToProduct(product: Product): void {
+    this.router.navigate(['/product-details'], { queryParams: { id: product.id } });
+  }
+
+  addToCart(product: Product, event: Event): void {
+    event.stopPropagation();
+    if ((product.stock ?? 0) === 0) {
+      this.notify.error('This product is out of stock.');
+      return;
+    }
+    this.cart.add(product, 1);
+    this.notify.success(`${product.name} added to cart.`);
+  }
+
+  toggleFavorite(product: Product, event: Event): void {
+    event.stopPropagation();
+    const added = this.favorites.toggle(product);
+    this.notify.info(added ? 'Added to favorites.' : 'Removed from favorites.');
+  }
+
+  isFavorite(product: Product): boolean {
+    return product.id ? this.favorites.has(product.id) : false;
+  }
+
+  // ==========================================
+  // CATEGORY NAVIGATION
+  // ==========================================
+  goToShops(): void {
+    this.router.navigate(['/shops']);
+  }
+
+  goToCategory(categoryId?: string): void {
+    if (!categoryId) {
+      this.router.navigate(['/shops']);
+      return;
+    }
+    this.router.navigate(['/shops'], { queryParams: { category: categoryId } });
+  }
+
+  // ==========================================
+  // CONTACT FORM
+  // ==========================================
+  submitContact(): void {
+    const { name, email, message } = this.contact;
+    if (!name.trim() || !email.trim() || !message.trim()) {
+      this.notify.error('Please fill in your name, email and message.');
+      return;
+    }
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!emailOk) {
+      this.notify.error('Please enter a valid email address.');
+      return;
+    }
+
+    this.contactSending.set(true);
+    this.http.post('/api/v1/contact', this.contact).pipe(
+      finalize(() => this.contactSending.set(false)),
+    ).subscribe({
+      next: () => {
+        this.notify.success('Thanks! Your message has been sent. We\'ll be in touch soon.');
+        this.contact = { name: '', email: '', subject: '', message: '' };
+      },
+      error: () => this.notify.error('Could not send your message. Please try again later.'),
+    });
   }
 }

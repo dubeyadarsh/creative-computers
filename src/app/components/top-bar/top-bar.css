@@ -1,6 +1,11 @@
 .app-header {
-  background: var(--bg-color);
-  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-bottom: 1px solid var(--neutral-200, #e2e8f0);
 }
 
 .header-main {
@@ -26,6 +31,93 @@
 .search-container {
   order: 3;
   width: 100%;
+  position: relative;
+}
+
+/* --- Autosuggest dropdown --- */
+.search-suggestions {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--bg-main, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+  padding: 0.35rem;
+  z-index: 1000;
+  max-height: 380px;
+  overflow-y: auto;
+  animation: suggestFade 0.15s ease;
+}
+
+@keyframes suggestFade {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.suggestion-item,
+.suggestion-all {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--text-main, #0f172a);
+  transition: background 0.15s ease;
+}
+
+.suggestion-item:hover,
+.suggestion-item.active {
+  background: var(--bg-image-gray, #f1f5f9);
+}
+
+.suggestion-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--bg-image-gray, #f1f5f9);
+  flex-shrink: 0;
+}
+
+.suggestion-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-price {
+  font-weight: 700;
+  color: var(--primary-color, #6366f1);
+  flex-shrink: 0;
+}
+
+.suggestion-all {
+  color: var(--primary-color, #6366f1);
+  font-weight: 600;
+  border-top: 1px solid var(--border-color, #eef2f7);
+  border-radius: 0 0 10px 10px;
+  margin-top: 0.15rem;
+}
+
+.suggestion-all mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.suggestion-empty {
+  padding: 0.75rem 0.65rem;
+  font-size: 0.9rem;
+  color: var(--text-muted, #64748b);
 }
 
 .search-box {
@@ -105,7 +197,14 @@
   position: relative;
   color: var(--text-main);
   text-decoration: none;
+  display: inline-flex;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
+.action-icon:hover { transform: translateY(-1px); }
+
+/* Favourites gets a rose accent so it reads as a wishlist heart */
+.action-fav { color: #f43f5e; }
+.action-fav:hover { color: #e11d48; }
 
 .action-icon .badge {
   position: absolute;

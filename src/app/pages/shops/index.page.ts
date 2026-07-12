@@ -1,334 +1,341 @@
-// shops.component.ts
-
 import {
   Component,
   OnInit,
-  ChangeDetectorRef,
-  HostListener,
+  OnDestroy,
+  AfterViewInit,
+  inject,
+  signal,
+  computed,
+  PLATFORM_ID,
   ViewChild,
   ElementRef,
-  AfterViewInit,
-  OnDestroy,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { Subject, Subscription } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
-export interface Product {
-  id: number;
-  name: string;
-  brand: string;
-  category: string;
-  price: number;
-  rating: number;
-  reviews: number;
-  stock: number;
-  views: number;
-  isTrending: boolean;
-  image: string;          
-  description: string;
-  discount: number;       
+import { ShopService } from '../../services/shop.service';
+import { NotificationService } from '../../services/notification.service';
+import { CartService } from '../../services/cart.service';
+import { FavoritesService } from '../../services/favorites.service';
+import { Category, Product, ProductSort } from '../../services/shop.types';
+
+interface SortOption {
+  value: ProductSort;
+  label: string;
 }
 
 @Component({
   selector: 'app-shops',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './shops.html',
   styleUrls: ['./shops.css'],
 })
 export default class ShopsComponent implements OnInit, AfterViewInit, OnDestroy {
-  // ─── Constants ────────────────────────────────────────────
-  readonly CATEGORIES = [
-    'All', 'Laptops', 'Audio', 'Cameras', 'Accessories', 'Smart Home', 'Monitors'
+  private shop = inject(ShopService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private notify = inject(NotificationService);
+  private cartSvc = inject(CartService);
+  private favSvc = inject(FavoritesService);
+  private platformId = inject(PLATFORM_ID);
+  private isBrowser = isPlatformBrowser(this.platformId);
+
+  @ViewChild('sentinel') sentinel?: ElementRef<HTMLElement>;
+
+  readonly PAGE_SIZE = 12;
+  readonly sortOptions: SortOption[] = [
+    { value: 'newest', label: 'Newest Arrivals' },
+    { value: 'popular', label: 'Trending' },
+    { value: 'price_asc', label: 'Price: Low to High' },
+    { value: 'price_desc', label: 'Price: High to Low' },
+    { value: 'name', label: 'Name: A to Z' },
   ];
 
-  readonly PAGE_SIZE = 15;
+  // ── Catalog state ──
+  products = signal<Product[]>([]);
+  categories = signal<Category[]>([]);
+  total = signal(0);
+  page = signal(1);
+  hasMore = signal(true);
+  isLoading = signal(false);      // first page / full reload
+  isLoadingMore = signal(false);  // subsequent pages
 
-  // ─── Mock Data ────────────────────────────────────────────
-  private readonly PRODUCT_NAMES = [
-    'Wireless Headphones Pro', 'Smart Watch Series X', 'Mechanical Keyboard',
-    '4K Action Camera', 'Noise Cancelling Earbuds', 'Smartphone Stand',
-    'USB-C Hub 7-in-1', 'Portable Power Bank', 'Bluetooth Speaker',
-    'Gaming Mouse', 'Laptop Sleeve 15"', 'Screen Protector Kit',
-    'Wireless Charger Pad', 'Fitness Tracker', 'Smart Home Hub'
-  ];
-  
-  private readonly BRANDS = ['Sony', 'Apple', 'Samsung', 'Logitech', 'Anker', 'Dyson'];
-  
-  // Real High-Quality Images instead of emojis
-  private readonly IMAGES = [
-    'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80', // Headphones
-    'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=600&q=80', // Watch
-    'https://images.unsplash.com/photo-1595225476474-87563907a212?auto=format&fit=crop&w=600&q=80', // Keyboard
-    'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=600&q=80', // Camera
-    'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=600&q=80', // Earbuds
-    'https://images.unsplash.com/photo-1586816879360-004f5b0c51e3?auto=format&fit=crop&w=600&q=80', // Stand
-    'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?auto=format&fit=crop&w=600&q=80', // Laptop / Hub
-    'https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?auto=format&fit=crop&w=600&q=80', // Power Bank
-    'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=600&q=80', // Speaker
-    'https://images.unsplash.com/photo-1527814050087-379381547949?auto=format&fit=crop&w=600&q=80', // Mouse
-    'https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&w=600&q=80', // Laptop Sleeve
-    'https://images.unsplash.com/photo-1512499617640-c74ae3a79d37?auto=format&fit=crop&w=600&q=80', // Screen/Phone
-    'https://images.unsplash.com/photo-1586280915668-3f5f3e481c95?auto=format&fit=crop&w=600&q=80', // Charger
-    'https://images.unsplash.com/photo-1575311373937-040b8e1fd5b0?auto=format&fit=crop&w=600&q=80', // Fitness Tracker
-    'https://images.unsplash.com/photo-1558089687-f282ffcbc126?auto=format&fit=crop&w=600&q=80'  // Smart Hub
-  ];
+  // ── Active query state (mirrors URL) ──
+  categoryId = signal<string | null>(null);
+  type = signal<'trending' | 'new' | null>(null);
+  sort = signal<ProductSort>('newest');
+  q = signal('');
 
-  // ─── State ──────────────────────────────────────────────
-  allProducts: Product[] = [];
-  filteredProducts: Product[] = [];
-  displayedProducts: Product[] = [];
+  // ── Filter drawer working copy ──
+  showFilters = signal(false);
+  showSort = signal(false);
+  searchText = '';
+  draftMinPrice: number | null = null;
+  draftMaxPrice: number | null = null;
+  draftInStock = false;
+  minPrice = signal<number | null>(null);
+  maxPrice = signal<number | null>(null);
+  inStock = signal(false);
 
-  page = 0;
-  hasMore = true;
-  isLoading = false;
+  // Recommended (popular) products shown as a horizontal rail.
+  recommended = signal<Product[]>([]);
 
-  selectedCategory = 'All';
-  searchQuery = '';
-  sortBy: 'relevance' | 'popular' | 'rating' | 'price-asc' | 'price-desc' = 'relevance';
+  private searchInput$ = new Subject<string>();
+  private subs = new Subscription();
+  private observer?: IntersectionObserver;
 
-  filters = {
-    priceMin: 0,
-    priceMax: 1500,
-    rating: 0,
-    stock: 'all', 
-  };
+  activeCategoryName = computed(() => {
+    const id = this.categoryId();
+    if (!id) return null;
+    return this.categories().find((c) => c.id === id)?.name ?? null;
+  });
 
-  wishlist = new Set<number>();
-  cart: Product[] = [];
+  heading = computed(() => {
+    if (this.q()) return `Results for “${this.q()}”`;
+    if (this.type() === 'trending') return 'Trending Now';
+    if (this.type() === 'new') return 'New Arrivals';
+    return this.activeCategoryName() ?? 'All Products';
+  });
 
-  // ─── UI State ────────────────────────────────────────────
-  showFilters = false;
-  showQuickView = false;
-  quickViewProduct: Product | null = null;
+  activeFilterCount = computed(() => {
+    let n = 0;
+    if (this.minPrice() != null) n++;
+    if (this.maxPrice() != null) n++;
+    if (this.inStock()) n++;
+    return n;
+  });
 
-  @ViewChild('searchInput') searchInput!: ElementRef<HTMLInputElement>;
-
-  constructor(private cdr: ChangeDetectorRef, private router: Router) {}
+  currentSortLabel = computed(
+    () => this.sortOptions.find((o) => o.value === this.sort())?.label ?? 'Sort',
+  );
 
   ngOnInit(): void {
-    this.generateMockProducts();
-    this.applyFiltersAndSort();
+    this.shop.getCategories().subscribe({
+      next: (res) => this.categories.set(res.data ?? []),
+      error: () => this.categories.set([]),
+    });
+
+    // Recommended rail — popular products across the store.
+    this.shop.queryProducts({ limit: 12, sort: 'popular' }).subscribe({
+      next: (res) => this.recommended.set(res.data ?? []),
+      error: () => this.recommended.set([]),
+    });
+
+    // URL is the source of truth — react to param changes.
+    this.subs.add(
+      this.route.queryParamMap.subscribe((params) => {
+        this.categoryId.set(params.get('category'));
+        const t = params.get('type');
+        this.type.set(t === 'trending' || t === 'new' ? t : null);
+        this.sort.set((params.get('sort') as ProductSort) || 'newest');
+        this.q.set(params.get('q') ?? '');
+        this.searchText = this.q();
+        this.minPrice.set(params.get('minPrice') ? Number(params.get('minPrice')) : null);
+        this.maxPrice.set(params.get('maxPrice') ? Number(params.get('maxPrice')) : null);
+        this.inStock.set(params.get('inStock') === 'true');
+        this.reloadFirstPage();
+      }),
+    );
+
+    // Debounced search → pushes to URL.
+    this.subs.add(
+      this.searchInput$
+        .pipe(debounceTime(400), distinctUntilChanged())
+        .subscribe((text) => this.updateQuery({ q: text || null })),
+    );
   }
 
-  ngAfterViewInit(): void {}
-  ngOnDestroy(): void {}
+  ngAfterViewInit(): void {
+    if (!this.isBrowser || !this.sentinel) return;
+    this.observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) this.loadMore();
+      },
+      { rootMargin: '400px' },
+    );
+    this.observer.observe(this.sentinel.nativeElement);
+  }
 
-  // ─── Mock Data Generation (Limited to 15) ──────────────
-  private generateMockProducts(): void {
-    const products: Product[] = [];
-    // FIX: Only generate 15 products
-    for (let i = 0; i < 15; i++) {
-      const cat = this.CATEGORIES[Math.floor(Math.random() * (this.CATEGORIES.length - 1)) + 1];
-      const name = this.PRODUCT_NAMES[i];
-      const brand = this.BRANDS[Math.floor(Math.random() * this.BRANDS.length)];
-      const price = Math.round((Math.random() * 280 + 20) * 100) / 100;
-      const rating = Math.round((Math.random() * 1.5 + 3.5) * 10) / 10;
-      const reviews = Math.floor(Math.random() * 800 + 20);
-      const stock = Math.random() > 0.15 ? Math.floor(Math.random() * 50 + 1) : 0;
-      const views = Math.floor(Math.random() * 5000 + 100);
-      const isTrending = Math.random() > 0.6;
-      const discount = Math.random() > 0.7 ? Math.round(Math.random() * 30 + 5) : 0;
+  ngOnDestroy(): void {
+    this.subs.unsubscribe();
+    this.observer?.disconnect();
+  }
 
-      products.push({
-        id: i + 1,
-        name,
-        brand,
-        category: cat,
-        price,
-        rating: Math.min(rating, 5),
-        reviews,
-        stock,
-        views,
-        isTrending,
-        image: this.IMAGES[i], // Direct URL assignment
-        description: `Premium ${cat.toLowerCase()} product from ${brand}. High-quality materials and exceptional performance perfectly suited for modern professionals.`,
-        discount,
+  // ── Data loading ──
+  private reloadFirstPage(): void {
+    this.page.set(1);
+    this.hasMore.set(true);
+    this.isLoading.set(true);
+    this.fetch(1, false);
+  }
+
+  private fetch(pageNum: number, append: boolean): void {
+    this.shop
+      .queryProducts({
+        page: pageNum,
+        limit: this.PAGE_SIZE,
+        categoryId: this.categoryId() ?? undefined,
+        type: this.type() ?? undefined,
+        sort: this.sort(),
+        q: this.q() || undefined,
+        minPrice: this.minPrice() ?? undefined,
+        maxPrice: this.maxPrice() ?? undefined,
+        inStock: this.inStock() || undefined,
+      })
+      .subscribe({
+        next: (res) => {
+          const incoming = res.data ?? [];
+          this.products.update((cur) => (append ? [...cur, ...incoming] : incoming));
+          this.total.set(res.meta?.total ?? incoming.length);
+          this.hasMore.set(res.meta?.hasMore ?? false);
+          this.isLoading.set(false);
+          this.isLoadingMore.set(false);
+        },
+        error: () => {
+          this.notify.error('Could not load products.');
+          this.isLoading.set(false);
+          this.isLoadingMore.set(false);
+          this.hasMore.set(false);
+        },
       });
-    }
-    this.allProducts = products;
-  }
-
-  // ─── Core Filtering / Sorting ───────────────────────────
-  applyFiltersAndSort(): void {
-    let result = [...this.allProducts];
-
-    if (this.selectedCategory !== 'All') {
-      result = result.filter((p) => p.category === this.selectedCategory);
-    }
-
-    const q = this.searchQuery.trim().toLowerCase();
-    if (q) {
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.brand.toLowerCase().includes(q) ||
-          p.category.toLowerCase().includes(q)
-      );
-    }
-
-    const min = this.filters.priceMin || 0;
-    const max = this.filters.priceMax || 1500;
-    result = result.filter((p) => p.price >= min && p.price <= max);
-
-    const ratingThreshold = this.filters.rating || 0;
-    if (ratingThreshold > 0) result = result.filter((p) => p.rating >= ratingThreshold);
-
-    const stockFilter = this.filters.stock;
-    if (stockFilter === 'in') result = result.filter((p) => p.stock > 5);
-    else if (stockFilter === 'low') result = result.filter((p) => p.stock > 0 && p.stock <= 5);
-    else if (stockFilter === 'out') result = result.filter((p) => p.stock === 0);
-
-    const sort = this.sortBy;
-    if (sort === 'price-asc') result.sort((a, b) => a.price - b.price);
-    else if (sort === 'price-desc') result.sort((a, b) => b.price - a.price);
-    else if (sort === 'rating') result.sort((a, b) => b.rating - a.rating || b.reviews - a.reviews);
-    else if (sort === 'popular') result.sort((a, b) => b.views - a.views);
-    else {
-      result.sort((a, b) => (b.isTrending ? 1 : 0) - (a.isTrending ? 1 : 0) || b.rating - a.rating);
-    }
-
-    this.filteredProducts = result;
-    this.page = 0;
-    this.hasMore = true;
-    this.displayedProducts = [];
-    this.loadMore();
   }
 
   loadMore(): void {
-    if (this.isLoading || !this.hasMore) return;
-    this.isLoading = true;
-    setTimeout(() => {
-      const start = this.page * this.PAGE_SIZE;
-      const end = Math.min(start + this.PAGE_SIZE, this.filteredProducts.length);
-      const slice = this.filteredProducts.slice(start, end);
-
-      if (slice.length === 0) {
-        this.hasMore = false;
-      } else {
-        this.displayedProducts.push(...slice);
-        this.page++;
-        if (this.displayedProducts.length >= this.filteredProducts.length) {
-          this.hasMore = false;
-        }
-      }
-      this.isLoading = false;
-      this.cdr.detectChanges();
-    }, 300);
+    if (this.isLoading() || this.isLoadingMore() || !this.hasMore()) return;
+    this.isLoadingMore.set(true);
+    const next = this.page() + 1;
+    this.page.set(next);
+    this.fetch(next, true);
   }
 
-  selectCategory(category: string): void {
-    this.selectedCategory = category;
-    this.applyFiltersAndSort();
+  // ── URL-driven filter mutations ──
+  private updateQuery(params: Record<string, string | null>): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: params,
+      queryParamsHandling: 'merge',
+    });
   }
 
-  onSearch(query: string): void {
-    this.searchQuery = query;
-    this.applyFiltersAndSort();
+  selectCategory(id: string | null): void {
+    // Selecting a category clears the trending/new "type" scope.
+    this.updateQuery({ category: id, type: null });
+  }
+
+  resetAll(): void {
+    this.updateQuery({ category: null, type: null });
+  }
+
+  setSort(value: ProductSort): void {
+    this.showSort.set(false);
+    this.updateQuery({ sort: value });
+  }
+
+  selectType(t: 'trending' | 'new' | null): void {
+    this.updateQuery({ type: t, category: null });
+  }
+
+  onSearchInput(value: string): void {
+    this.searchInput$.next(value.trim());
   }
 
   clearSearch(): void {
-    this.searchQuery = '';
-    if (this.searchInput) this.searchInput.nativeElement.value = '';
-    this.applyFiltersAndSort();
+    this.searchText = '';
+    this.updateQuery({ q: null });
   }
 
-  toggleSort(): void {
-    const options: (typeof this.sortBy)[] = ['relevance', 'popular', 'rating', 'price-asc', 'price-desc'];
-    const nextIdx = (options.indexOf(this.sortBy) + 1) % options.length;
-    this.sortBy = options[nextIdx];
-    this.applyFiltersAndSort();
-  }
-
-  toggleWishlist(productId: number): void {
-    if (this.wishlist.has(productId)) this.wishlist.delete(productId);
-    else this.wishlist.add(productId);
-  }
-
-  addToCart(productId: number): void {
-    const product = this.allProducts.find((p) => p.id === productId);
-    if (product) this.cart.push(product);
-  }
-
-  openQuickView(product: Product): void {
-    this.quickViewProduct = product;
-    this.showQuickView = true;
-    document.body.style.overflow = 'hidden';
-  }
-
-  closeQuickView(): void {
-    this.showQuickView = false;
-    this.quickViewProduct = null;
-    document.body.style.overflow = '';
-  }
-
+  // ── Filter drawer ──
   openFilters(): void {
-    this.showFilters = true;
-    document.body.style.overflow = 'hidden';
+    this.draftMinPrice = this.minPrice();
+    this.draftMaxPrice = this.maxPrice();
+    this.draftInStock = this.inStock();
+    this.showFilters.set(true);
+    this.lockScroll(true);
   }
 
   closeFilters(): void {
-    this.showFilters = false;
-    document.body.style.overflow = '';
+    this.showFilters.set(false);
+    this.lockScroll(false);
   }
 
-  applyFiltersFromDrawer(): void {
-    this.applyFiltersAndSort();
+  applyFilters(): void {
+    this.updateQuery({
+      minPrice: this.draftMinPrice != null ? String(this.draftMinPrice) : null,
+      maxPrice: this.draftMaxPrice != null ? String(this.draftMaxPrice) : null,
+      inStock: this.draftInStock ? 'true' : null,
+    });
     this.closeFilters();
   }
 
   resetFilters(): void {
-    this.filters = { priceMin: 0, priceMax: 1500, rating: 0, stock: 'all' };
-    this.applyFiltersAndSort();
+    this.draftMinPrice = null;
+    this.draftMaxPrice = null;
+    this.draftInStock = false;
+    this.updateQuery({ minPrice: null, maxPrice: null, inStock: null });
     this.closeFilters();
   }
 
-  @HostListener('window:scroll', ['$event'])
-  onScroll(event?: Event): void {
-    if (this.hasMore && !this.isLoading) {
-      const scrollHeight = document.documentElement.scrollHeight;
-      const clientHeight = window.innerHeight;
-      const scrollTop = window.scrollY || window.pageYOffset;
-      if (scrollTop + clientHeight >= scrollHeight - 200) {
-        this.loadMore();
+  private lockScroll(lock: boolean): void {
+    if (this.isBrowser) document.body.style.overflow = lock ? 'hidden' : '';
+  }
+
+  // ── Card helpers ──
+  toggleWishlist(product: Product, ev: Event): void {
+    ev.stopPropagation();
+    const added = this.favSvc.toggle(product);
+    this.notify.info(added ? 'Added to favorites.' : 'Removed from favorites.');
+  }
+
+  isWishlisted(id: string): boolean {
+    // touch signal for reactivity
+    this.favSvc.items();
+    return this.favSvc.has(id);
+  }
+
+  addToCart(product: Product, ev: Event): void {
+    ev.stopPropagation();
+    if ((product.stock ?? 0) === 0) {
+      this.notify.error('This product is out of stock.');
+      return;
+    }
+    this.cartSvc.add(product, 1);
+    this.notify.success(`${product.name} added to cart.`);
+  }
+
+  async share(product: Product, ev: Event): Promise<void> {
+    ev.stopPropagation();
+    if (!this.isBrowser) return;
+    const url = `${window.location.origin}/product-details?id=${product.id}`;
+    const text = `Check out ${product.name} at Creative Computers — ₹${product.price}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: product.name, text, url });
+      } else {
+        window.open(
+          `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`,
+          '_blank',
+          'noopener',
+        );
       }
+    } catch {
+      /* cancelled */
     }
   }
 
-  getStockBadge(stock: number): { label: string; cls: string } {
-    if (stock === 0) return { label: 'Out of Stock', cls: 'out-of-stock' };
-    if (stock <= 5) return { label: 'Low Stock', cls: 'low-stock' };
-    return { label: 'In Stock', cls: 'in-stock' };
+  goToProduct(product: Product): void {
+    this.lockScroll(false);
+    this.router.navigate(['/product-details'], { queryParams: { id: product.id } });
   }
 
-  formatPrice(price: number): string {
-    return '$' + price.toFixed(2);
+  imageOf(product: Product): string {
+    return product.image_urls?.length
+      ? product.image_urls[0]
+      : 'https://placehold.co/400x400?text=No+Image';
   }
 
-  isWishlisted(id: number): boolean { return this.wishlist.has(id); }
-  isInCart(id: number): boolean { return this.cart.some((p) => p.id === id); }
-
-  getFinalPrice(product: Product): number {
-    return product.discount > 0
-      ? Math.round((product.price * (1 - product.discount / 100)) * 100) / 100
-      : product.price;
-  }
-
-  getActiveFilterCount(): number {
-    let count = 0;
-    if (this.filters.rating > 0) count++;
-    if (this.filters.stock !== 'all') count++;
-    if (this.filters.priceMin > 0 || this.filters.priceMax < 1500) count++;
-    return count;
-  }
-
-goToProduct(productId: number): void {
-    // Failsafe: Ensure the body is never locked when navigating away
-    document.body.style.overflow = '';
-    
-    //cgec
-    // Navigate to the product details page
-    this.router.navigate(['/product-details']); 
-  }
+  trackById = (_: number, p: Product) => p.id;
 }

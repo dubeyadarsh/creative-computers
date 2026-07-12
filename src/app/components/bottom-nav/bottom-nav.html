@@ -9,7 +9,10 @@
       <span class="tab-label">Shop</span>
     </a>
     <a routerLink="/cart" routerLinkActive="active-tab" class="nav-tab">
-      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="tab-icon"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+      <span class="tab-icon-wrap">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="tab-icon"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+        @if (cart.count() > 0) { <span class="nav-badge">{{ cart.count() }}</span> }
+      </span>
       <span class="tab-label">Cart</span>
     </a>
     <a routerLink="/account" routerLinkActive="active-tab" class="nav-tab">

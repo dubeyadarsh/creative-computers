@@ -26,6 +26,81 @@
   --text-main: #0f172a;
   --text-muted: #64748b;
   --text-inverse: #ffffff;
+
+  /* ─── DESIGN SYSTEM TOKENS (global) ─── */
+  /* Brand (indigo) */
+  --brand-50: #eef2ff;
+  --brand-100: #e0e7ff;
+  --brand-200: #c7d2fe;
+  --brand-400: #818cf8;
+  --brand-500: #6366f1;
+  --brand-600: #4f46e5;
+  --brand-800: #3730a3;
+
+  /* Neutral (zinc/slate) */
+  --neutral-0: #ffffff;
+  --neutral-50: #f8fafc;
+  --neutral-100: #f1f5f9;
+  --neutral-200: #e2e8f0;
+  --neutral-300: #cbd5e1;
+  --neutral-400: #94a3b8;
+  --neutral-500: #64748b;
+  --neutral-600: #475569;
+  --neutral-800: #1e293b;
+  --neutral-900: #0f172a;
+
+  --color-bg: #fafafa;
+  --accent-indigo: #6366f1;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 6px 16px -4px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 20px 40px -12px rgba(15, 23, 42, 0.18);
+
+  /* Gradients */
+  --gradient-brand: linear-gradient(135deg, #6366f1, #a855f7);
+  --gradient-card: linear-gradient(135deg, #1e293b, #0f172a);
+
+  /* Typography */
+  --font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  --text-xs: 0.75rem;
+  --text-sm: 0.85rem;
+  --text-md: 1rem;
+  --text-lg: 1.15rem;
+  --text-xl: 1.35rem;
+  --text-2xl: 1.6rem;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+
+  /* Layout */
+  --nav-top-height: 64px;
+  --nav-bottom-height: 68px;
+  --max-width: 480px;
+
+  /* Motion */
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+html, body {
+  max-width: 100%;
+  /* Use `clip` (not `hidden`): `overflow-x: hidden` forces the other axis to
+     `auto`, turning the page into a scroll container and breaking the sticky
+     top bar. `clip` stops horizontal overflow without that side effect. */
+  overflow-x: clip;
 }
 
 body {
@@ -57,6 +132,23 @@ img {
   display: block;
 }
 
+/* --- Toast / Snackbar Notifications --- */
+.toast-success {
+  --mdc-snackbar-container-color: #16a34a;
+  --mdc-snackbar-supporting-text-color: #ffffff;
+  --mat-snack-bar-button-color: #ffffff;
+}
+.toast-error {
+  --mdc-snackbar-container-color: #dc2626;
+  --mdc-snackbar-supporting-text-color: #ffffff;
+  --mat-snack-bar-button-color: #ffffff;
+}
+.toast-info {
+  --mdc-snackbar-container-color: #0f172a;
+  --mdc-snackbar-supporting-text-color: #ffffff;
+  --mat-snack-bar-button-color: #ffffff;
+}
+
 /* Base Primary Button */
 .btn-primary {
   background-color: var(--primary-green);
@@ -72,4 +164,26 @@ img {
 }
 .btn-primary:hover {
   opacity: 0.9;
+}
+
+/* ── Snackbar / Toast notifications ── */
+.toast-success .mdc-snackbar__surface {
+  background-color: #16a34a !important;
+}
+.toast-error .mdc-snackbar__surface {
+  background-color: #dc2626 !important;
+}
+.toast-info .mdc-snackbar__surface {
+  background-color: #2563eb !important;
+}
+.toast-success .mat-mdc-snack-bar-label,
+.toast-error .mat-mdc-snack-bar-label,
+.toast-info .mat-mdc-snack-bar-label {
+  color: #ffffff !important;
+  font-weight: 500;
+}
+.toast-success .mat-mdc-button,
+.toast-error .mat-mdc-button,
+.toast-info .mat-mdc-button {
+  color: rgba(255, 255, 255, 0.85) !important;
 }

@@ -1,229 +1,455 @@
-<div class="pdp-container">
-  
-  <nav class="breadcrumbs">
-    <a routerLink="/">Home</a>
-    <span class="separator">/</span>
-    <a routerLink="/products">Computers & Laptops</a>
-    <span class="separator">/</span>
-    <span class="current">{{ product.name }}</span>
-  </nav>
-
-  <div class="product-hero">
-    
-    <div class="gallery-wrapper">
-      <div class="main-image-box">
-        <img [src]="mainImage" [alt]="product.name" />
+<!-- ══════════ LOADING ══════════ -->
+@if (isLoading()) {
+  <div class="pdp-container">
+    <div class="pdp-skeleton">
+      <div class="sk-gallery shimmer"></div>
+      <div class="sk-info">
+        <div class="sk-line lg shimmer"></div>
+        <div class="sk-line md shimmer"></div>
+        <div class="sk-line sm shimmer"></div>
+        <div class="sk-block shimmer"></div>
       </div>
-      
-      <div class="thumbnail-strip hide-scrollbar">
-        @for (img of product.images; track img) {
-          <button class="thumb-btn" [class.active]="mainImage === img" (click)="setMainImage(img)">
-            <img [src]="img" alt="Thumbnail" />
+    </div>
+  </div>
+}
+
+<!-- ══════════ NOT FOUND ══════════ -->
+@else if (notFound() || !product()) {
+  <div class="pdp-container">
+    <div class="pdp-empty">
+      <div class="pdp-empty__icon">🔍</div>
+      <h2>Product not found</h2>
+      <p>The product you’re looking for doesn’t exist or was removed.</p>
+      <button class="btn-primary" routerLink="/shops">Browse products</button>
+    </div>
+  </div>
+}
+
+<!-- ══════════ PRODUCT ══════════ -->
+@else {
+  <div class="pdp-container">
+
+    <!-- Breadcrumbs -->
+    <nav class="breadcrumbs">
+      <a routerLink="/">Home</a>
+      <span class="separator">/</span>
+      <a [routerLink]="['/shops']" [queryParams]="{ category: product()!.category_id }">
+        {{ product()!.categories?.name || 'Products' }}
+      </a>
+      <span class="separator">/</span>
+      <span class="current">{{ product()!.name }}</span>
+    </nav>
+
+    <!-- HERO: gallery + info -->
+    <div class="product-hero">
+
+      <!-- Gallery / carousel -->
+      <div class="gallery-wrapper">
+        <div class="main-image-box">
+          <img [src]="mainImage()" [alt]="product()!.name" />
+          @if (discountPct() > 0) {
+            <span class="gallery-badge">-{{ discountPct() }}%</span>
+          }
+          <button class="gallery-share" (click)="share()" aria-label="Share">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           </button>
-        }
-      </div>
-    </div>
 
-    <div class="info-wrapper">
-      <div class="brand-eyebrow">{{ product.brand }}</div>
-      <h1 class="product-title">{{ product.name }}</h1>
-      
-      <div class="rating-row">
-  <div class="stars">
-    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-    <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-  </div>
-  
-  <a href="#reviews" class="review-link" (click)="activeTab = 'reviews'">
-    {{ product.reviews }} Reviews
-  </a>
-</div>
-
-      <!-- <div class="price-row">
-        <span class="current-price">${{ product.price.toFixed(2) }}</span>
-        @if (product.originalPrice) {
-          <span class="original-price">${{ product.originalPrice.toFixed(2) }}</span>
-        }
-      </div> -->
-
-      <div class="product-status-bar">
-        <div class="status-badge" [class.in-stock]="product.stock > 0">
-          <span class="indicator-dot"></span>
-          {{ product.stock > 0 ? 'In Stock' : 'Out of Stock' }}
-        </div>
-        @if (product.originalPrice) {
-          <div class="promo-badge">
-            Save ${{ (product.originalPrice - product.price).toFixed(0) }} Instantly
-          </div>
-        }
-      </div>
-
-      <p class="short-desc">{{ product.shortDesc || 'Experience top-tier modern computing performance designed for creative professionals and daily power users alike.' }}</p>
-
-      <div class="divider"></div>
-
-      <div class="action-row desktop-only">
-        <div class="qty-selector">
-          <button (click)="decrementQty()" aria-label="Decrease quantity">−</button>
-          <input type="number" [value]="quantity" readonly />
-          <button (click)="incrementQty()" aria-label="Increase quantity">+</button>
-        </div>
-        <button class="btn-primary">Add to Cart</button>
-      </div>
-
-      <div class="trust-badges">
-        <div class="trust-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-11.622 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-          <span>2-Year Warranty</span>
-        </div>
-        <div class="trust-item">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke-width="2"></rect><path d="M7 11V7a5 5 0 0110 0v4" stroke-width="2"></path></svg>
-          <span>Secure Delivery</span>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <div class="bundle-section">
-    <h3 class="section-heading">Frequently Bought Together</h3>
-    <div class="bundle-container">
-      <div class="bundle-images hide-scrollbar">
-        <div class="bundle-img-box">
-          <img [src]="product.images[0]" alt="Main Product" />
-        </div>
-        <span class="plus-icon">+</span>
-        <div class="bundle-img-box">
-          <img src="https://images.unsplash.com/photo-1595225476474-87563907a212?auto=format&fit=crop&w=400&q=80" alt="Accessory 1" />
-        </div>
-        <span class="plus-icon">+</span>
-        <div class="bundle-img-box">
-          <img src="https://images.unsplash.com/photo-1586280915668-3f5f3e481c95?auto=format&fit=crop&w=400&q=80" alt="Accessory 2" />
-        </div>
-      </div>
-      <div class="bundle-action">
-        <div class="bundle-price">
-          <span class="label">Bundle Offer Price</span>
-          <span class="amount">$1,447.00</span>
-        </div>
-        <button class="btn-dark">Add All 3 to Cart</button>
-      </div>
-    </div>
-  </div>
-<div class="tabs-wrapper" id="tabs-area">
-  
-  <div class="tab-headers hide-scrollbar">
-    <button [class.active]="activeTab === 'description'" (click)="activeTab = 'description'">
-      Product Details
-    </button>
-    <button [class.active]="activeTab === 'specs'" (click)="activeTab = 'specs'">
-      Specifications
-    </button>
-    <button [class.active]="activeTab === 'reviews'" (click)="activeTab = 'reviews'">
-      Reviews ({{ product.reviews }})
-    </button>
-  </div>
-  
-  <div class="tab-content">
-    
-    @if (activeTab === 'description') {
-      <div class="tab-pane fade-in">
-        <p class="pane-text">
-          {{ product.shortDesc || 'Experience top-tier modern computing performance designed for creative professionals and daily power users alike.' }}
-        </p>
-        <ul class="features-list">
-          <li>Engineered with premium sustainable, aerospace-grade alloy structures.</li>
-          <li>Advanced thermal arrays keep internal systems cool during hyper-threaded rendering workloads.</li>
-          <li>Color-calibrated cinematic display matrix brings pinpoint absolute clarity to assets.</li>
-        </ul>
-      </div>
-    }
-
-    @if (activeTab === 'specs') {
-      <div class="tab-pane fade-in">
-        <table class="specs-table">
-          <tbody>
-            <tr>
-              <td>Processor Architecture</td>
-              <td>High-Performance Core Configurations (Next-Gen Acceleration)</td>
-            </tr>
-            <tr>
-              <td>Memory Allocation</td>
-              <td>32GB Unified High-Speed LPDDR5X Configuration</td>
-            </tr>
-            <tr>
-              <td>Solid State Storage</td>
-              <td>1TB NVMe PCIe 4.0 Hyper-Velocity SSD</td>
-            </tr>
-            <tr>
-              <td>Graphics Processing</td>
-              <td>Dedicated Ray-Tracing Accelerated Processing Cores</td>
-            </tr>
-            <tr>
-              <td>Wireless Standards</td>
-              <td>Wi-Fi 6E Tri-Band Support + Intelligent Bluetooth Low Energy</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    }
-
-    @if (activeTab === 'reviews') {
-      <div class="reviews-grid fade-in">
-        @for (review of reviews; track review.author) {
-          <div class="review-card">
-            <div class="review-header">
-              <div class="reviewer-name">{{ review.author }} <span class="verified">Verified Buyer</span></div>
-              <div class="review-date">{{ review.date }}</div>
+          @if (images().length > 1) {
+            <button class="carousel-arrow prev" (click)="prevImage()" aria-label="Previous image">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <button class="carousel-arrow next" (click)="nextImage()" aria-label="Next image">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            <div class="carousel-dots">
+              @for (img of images(); track $index) {
+                <span class="dot" [class.active]="activeImageIndex() === $index" (click)="setImage($index)"></span>
+              }
             </div>
-            <div class="stars mb-2">★★★★★</div>
-            <p class="review-text">{{ review.text }}</p>
+          }
+        </div>
+
+        @if (images().length > 1) {
+          <div class="thumbnail-strip hide-scrollbar">
+            @for (img of images(); track $index) {
+              <button class="thumb-btn" [class.active]="activeImageIndex() === $index" (click)="setImage($index)">
+                <img [src]="img" alt="Thumbnail" />
+              </button>
+            }
           </div>
         }
       </div>
-    }
 
-  </div>
-</div>
-  <div class="recommended-section">
-    <div class="rec-section-header">
-      <h3 class="section-heading">You May Also Like</h3>
-      <p class="section-subheading">Handpicked companion products optimized for your workflow.</p>
+      <!-- Info -->
+      <div class="info-wrapper">
+        @if (product()!.categories?.name) {
+          <div class="brand-eyebrow">{{ product()!.categories?.name }}</div>
+        }
+        <h1 class="product-title">{{ product()!.name }}</h1>
+
+        <div class="rating-row">
+          <div class="stars-inline">
+            @for (s of stars(ratingAverage()); track $index) { <span class="star-on">★</span> }
+            @for (s of stars(5 - ratingAverage()); track $index) { <span class="star-off">★</span> }
+          </div>
+          <span class="rating-value">{{ ratingAverage() }}</span>
+          <a class="review-link" (click)="activeTab.set('reviews')">{{ ratingCount() }} reviews</a>
+        </div>
+
+        <!-- Price -->
+        <div class="price-block">
+          <span class="current-price">₹{{ unitPrice() | number:'1.0-0' }}</span>
+          @if (mrp()) {
+            <span class="original-price">₹{{ mrp() | number:'1.0-0' }}</span>
+            <span class="discount-chip">{{ discountPct() }}% OFF</span>
+          }
+        </div>
+        <p class="tax-note">Inclusive of all taxes</p>
+
+        <!-- Stock / status -->
+        <div class="product-status-bar">
+          <div class="status-badge" [class.in-stock]="product()!.stock > 0" [class.out-stock]="product()!.stock === 0">
+            <span class="indicator-dot"></span>
+            {{ product()!.stock > 0 ? (product()!.stock <= 5 ? 'Only ' + product()!.stock + ' left!' : 'In Stock') : 'Out of Stock' }}
+          </div>
+          @if (savings() > 0) {
+            <div class="promo-badge">You save ₹{{ savings() | number:'1.0-0' }}</div>
+          }
+        </div>
+
+        @if (product()!.description) {
+          <p class="short-desc">{{ product()!.description }}</p>
+        }
+
+        <!-- Offers -->
+        <div class="offers-card">
+          <h4>Available offers</h4>
+          <ul>
+            <li><span class="offer-tag">Bank</span> 10% instant discount on select cards</li>
+            <li><span class="offer-tag">EMI</span> No-cost EMI available on orders above ₹3,000</li>
+            <li><span class="offer-tag">Free</span> Free delivery on orders above ₹499</li>
+          </ul>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Actions (desktop) -->
+        <div class="action-row desktop-only">
+          <div class="qty-selector">
+            <button (click)="decrementQty()" [disabled]="quantity() <= 1" aria-label="Decrease">−</button>
+            <input type="text" [value]="quantity()" readonly />
+            <button (click)="incrementQty()" [disabled]="quantity() >= product()!.stock" aria-label="Increase">+</button>
+          </div>
+          <button class="btn-outline" (click)="toggleWishlist()">
+            <svg viewBox="0 0 24 24" [attr.fill]="isWishlisted() ? '#ef4444' : 'none'" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </button>
+          <button class="btn-primary" [disabled]="product()!.stock === 0" (click)="addToCart()">Add to Cart</button>
+          <button class="btn-dark" [disabled]="product()!.stock === 0" (click)="buyNow()">Buy Now</button>
+        </div>
+
+        <!-- Trust -->
+        <div class="trust-badges">
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-11.622 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>Genuine Product</span>
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="1" y="3" width="15" height="13" rx="1" stroke-width="2"/><path d="M16 8h4l3 3v5h-7V8z" stroke-width="2"/><circle cx="5.5" cy="18.5" r="2.5" stroke-width="2"/><circle cx="18.5" cy="18.5" r="2.5" stroke-width="2"/></svg>
+            <span>Fast Delivery</span>
+          </div>
+          <div class="trust-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0zM12 8v4l3 2"/></svg>
+            <span>7-Day Returns</span>
+          </div>
+        </div>
+      </div>
     </div>
-    
-    <div class="horizontal-scroll hide-scrollbar">
-      @for (item of recommended; track item.id) {
-        <div class="product-card-premium">
-          <div class="img-wrap">
-            <img [src]="item.image" alt="{{ item.name }}" />
-            <span class="quick-view-indicator">View Product</span>
-          </div>
-          <div class="card-body">
-            <h4 class="name">{{ item.name }}</h4>
-            <div class="price-row-mini">
-              <span class="price">${{ item.price.toFixed(2) }}</span>
-              <span class="arrow-btn">➔</span>
-            </div>
-          </div>
+
+    <!-- Price breakdown -->
+    <div class="breakdown-card">
+      <h3 class="section-heading">Price details</h3>
+      <div class="breakdown-row">
+        <span>Price ({{ quantity() }} {{ quantity() === 1 ? 'item' : 'items' }})</span>
+        <span>₹{{ (mrp() ? mrp()! * quantity() : subtotal()) | number:'1.0-0' }}</span>
+      </div>
+      @if (savings() > 0) {
+        <div class="breakdown-row discount">
+          <span>Discount</span>
+          <span>− ₹{{ savings() | number:'1.0-0' }}</span>
         </div>
       }
+      <div class="breakdown-row">
+        <span>Delivery charges</span>
+        @if (shipping() === 0) {
+          <span class="free">FREE</span>
+        } @else {
+          <span>₹{{ shipping() | number:'1.0-0' }}</span>
+        }
+      </div>
+      <div class="breakdown-row muted">
+        <span>Incl. taxes (GST)</span>
+        <span>₹{{ taxPortion() | number:'1.0-0' }}</span>
+      </div>
+      <div class="breakdown-total">
+        <span>Total payable</span>
+        <span>₹{{ total() | number:'1.0-0' }}</span>
+      </div>
+      @if (savings() > 0) {
+        <p class="breakdown-savings">You will save ₹{{ savings() | number:'1.0-0' }} on this order</p>
+      }
     </div>
+
+    <!-- Frequently bought together -->
+    @if (bundle().length > 0) {
+      <div class="bundle-section">
+        <h3 class="section-heading">Frequently bought together</h3>
+        <div class="bundle-container">
+          <div class="bundle-images hide-scrollbar">
+            <div class="bundle-item">
+              <div class="bundle-img-box current"><img [src]="mainImage()" [alt]="product()!.name" /></div>
+              <span class="bundle-item__price">₹{{ unitPrice() | number:'1.0-0' }}</span>
+            </div>
+            @for (item of bundle(); track item.id) {
+              <span class="plus-icon">+</span>
+              <div class="bundle-item">
+                <label class="bundle-img-box selectable" [class.picked]="bundleSelected().has(item.id!)">
+                  <input type="checkbox" [checked]="bundleSelected().has(item.id!)" (change)="toggleBundleItem(item.id!)" />
+                  <img [src]="imageOf(item)" [alt]="item.name" (click)="goToProduct(item)" />
+                  <span class="tick">✓</span>
+                </label>
+                <span class="bundle-item__price">₹{{ item.price | number:'1.0-0' }}</span>
+              </div>
+            }
+          </div>
+          <div class="bundle-action">
+            <div class="bundle-price">
+              <span class="label">Total for {{ bundleSelected().size + 1 }} items</span>
+              <span class="amount">₹{{ bundleTotal() | number:'1.0-0' }}</span>
+            </div>
+            <button class="btn-dark" (click)="addBundleToCart()">Add selected to cart</button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Tabs -->
+    <div class="tabs-wrapper" id="tabs-area">
+      <div class="tab-headers hide-scrollbar">
+        <button [class.active]="activeTab() === 'description'" (click)="activeTab.set('description')">Product Details</button>
+        <button [class.active]="activeTab() === 'specs'" (click)="activeTab.set('specs')">Specifications</button>
+        <button [class.active]="activeTab() === 'reviews'" (click)="activeTab.set('reviews')">Reviews ({{ ratingCount() }})</button>
+      </div>
+
+      <div class="tab-content">
+
+        <!-- Description -->
+        @if (activeTab() === 'description') {
+          <div class="tab-pane fade-in">
+            <p class="pane-text">
+              {{ product()!.description || 'A premium product crafted with quality and performance in mind — perfectly suited for everyday use.' }}
+            </p>
+            <ul class="features-list">
+              <li>Premium build quality with careful attention to detail.</li>
+              <li>Backed by manufacturer warranty and easy returns.</li>
+              <li>Rigorously quality-checked before dispatch.</li>
+            </ul>
+          </div>
+        }
+
+        <!-- Specs -->
+        @if (activeTab() === 'specs') {
+          <div class="tab-pane fade-in">
+            @if (specs().length > 0) {
+              <table class="specs-table">
+                <tbody>
+                  @for (spec of specs(); track spec.label) {
+                    <tr>
+                      <td>{{ spec.label }}</td>
+                      <td>{{ spec.value }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <p class="pane-text muted">No specifications listed for this product.</p>
+            }
+          </div>
+        }
+
+        <!-- Reviews -->
+        @if (activeTab() === 'reviews') {
+          <div class="reviews-wrapper fade-in">
+            <!-- Summary -->
+            <div class="reviews-summary">
+              <div class="reviews-score">
+                <div class="score-big">{{ ratingAverage() }}</div>
+                <div class="stars-inline lg">
+                  @for (s of stars(ratingAverage()); track $index) { <span class="star-on">★</span> }
+                  @for (s of stars(5 - ratingAverage()); track $index) { <span class="star-off">★</span> }
+                </div>
+                <div class="score-count">{{ ratingCount() }} reviews</div>
+              </div>
+              <div class="reviews-bars">
+                @for (row of ratingDistribution(); track row.star) {
+                  <div class="bar-row">
+                    <span class="bar-label">{{ row.star }}★</span>
+                    <div class="bar-track"><div class="bar-fill" [style.width.%]="row.pct"></div></div>
+                    <span class="bar-count">{{ row.count }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="reviews-actions">
+              <button class="btn-outline" (click)="openReviewForm()">
+                {{ showReviewForm() ? 'Cancel' : (isLoggedIn() ? 'Write a review' : 'Sign in to review') }}
+              </button>
+            </div>
+
+            <!-- Review form (logged-in only) -->
+            @if (showReviewForm() && isLoggedIn()) {
+              <div class="review-form fade-in">
+                <div class="rf-row">
+                  <span class="rf-label">Your rating</span>
+                  <div class="rf-stars">
+                    @for (n of [1,2,3,4,5]; track n) {
+                      <span class="rf-star" [class.on]="newReview.rating >= n" (click)="newReview.rating = n">★</span>
+                    }
+                  </div>
+                </div>
+                <input type="text" placeholder="Review title (optional)" [(ngModel)]="newReview.title" />
+                <textarea rows="3" placeholder="Share your experience…" [(ngModel)]="newReview.body"></textarea>
+
+                <label class="rf-upload">
+                  <input type="file" accept="image/*" multiple (change)="onReviewFiles($event)" hidden />
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  Add photos (up to 4)
+                </label>
+                @if (reviewPreviews().length > 0) {
+                  <div class="rf-previews">
+                    @for (src of reviewPreviews(); track src) {
+                      <img [src]="src" alt="preview" />
+                    }
+                  </div>
+                }
+
+                <button class="btn-primary" (click)="submitReview()" [disabled]="submittingReview()">
+                  {{ submittingReview() ? 'Posting…' : 'Submit review' }}
+                </button>
+              </div>
+            }
+
+            <!-- Review list -->
+            @if (reviewsLoading()) {
+              <p class="pane-text muted">Loading reviews…</p>
+            } @else if (reviews().length === 0) {
+              <div class="reviews-empty">
+                <div class="reviews-empty__icon">⭐</div>
+                <p>No reviews yet. Be the first to share your experience!</p>
+              </div>
+            } @else {
+              <div class="reviews-grid">
+                @for (review of reviews(); track review.id) {
+                  <div class="review-card">
+                    <div class="review-header">
+                      <div class="reviewer-avatar">{{ (review.author_name || 'A').charAt(0) }}</div>
+                      <div class="reviewer-meta">
+                        <div class="reviewer-name">
+                          {{ review.author_name || 'Anonymous' }}
+                          <span class="verified">Verified Buyer</span>
+                        </div>
+                        <div class="review-date">{{ reviewDate(review.created_at) }}</div>
+                      </div>
+                      <div class="review-rating-pill">{{ review.rating }} ★</div>
+                    </div>
+                    @if (review.title) { <h4 class="review-title">{{ review.title }}</h4> }
+                    <p class="review-text">{{ review.body }}</p>
+                    @if (review.image_urls && review.image_urls.length > 0) {
+                      <div class="review-photos">
+                        @for (img of review.image_urls; track img) {
+                          <img [src]="img" alt="Review photo" />
+                        }
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Store picks: handpicked recommendations from Creative Computers -->
+    @if (storePicks().length > 0) {
+      <div class="recommended-section">
+        <div class="rec-section-header">
+          <h3 class="section-heading">Recommended by Creative Computers</h3>
+          <p class="section-subheading">Handpicked favourites from our store</p>
+        </div>
+
+        <div class="horizontal-scroll hide-scrollbar">
+          @for (item of storePicks(); track item.id) {
+            <div class="product-card-premium" (click)="goToProduct(item)">
+              <div class="img-wrap">
+                <img [src]="imageOf(item)" [alt]="item.name" />
+                <span class="quick-view-indicator">View Product</span>
+                <span class="mini-badge">Our Pick</span>
+              </div>
+              <div class="card-body">
+                <h4 class="name">{{ item.name }}</h4>
+                <div class="price-row-mini">
+                  <span class="price">₹{{ item.price | number:'1.0-0' }}</span>
+                  <span class="arrow-btn">➔</span>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Recommendations -->
+    @if (recommended().length > 0) {
+      <div class="recommended-section">
+        <div class="rec-section-header">
+          <h3 class="section-heading">You may also like</h3>
+          <p class="section-subheading">More from {{ product()!.categories?.name || 'this category' }}</p>
+        </div>
+
+        <div class="horizontal-scroll hide-scrollbar">
+          @for (item of recommended(); track item.id) {
+            <div class="product-card-premium" (click)="goToProduct(item)">
+              <div class="img-wrap">
+                <img [src]="imageOf(item)" [alt]="item.name" />
+                <span class="quick-view-indicator">View Product</span>
+                @if (item.is_trending) { <span class="mini-badge">Trending</span> }
+              </div>
+              <div class="card-body">
+                <h4 class="name">{{ item.name }}</h4>
+                <div class="price-row-mini">
+                  <span class="price">₹{{ item.price | number:'1.0-0' }}</span>
+                  <span class="arrow-btn">➔</span>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
   </div>
 
-</div>
-
-<div class="fixed-buybar">
-  <div class="qty-selector">
-    <button (click)="decrementQty()">−</button>
-    <input type="number" [value]="quantity" readonly />
-    <button (click)="incrementQty()">+</button>
+  <!-- Sticky mobile buy bar -->
+  <div class="fixed-buybar">
+    <div class="qty-selector">
+      <button (click)="decrementQty()" [disabled]="quantity() <= 1">−</button>
+      <input type="text" [value]="quantity()" readonly />
+      <button (click)="incrementQty()" [disabled]="quantity() >= product()!.stock">+</button>
+    </div>
+    <button class="btn-primary" [disabled]="product()!.stock === 0" (click)="addToCart()">
+      <span>Add to Cart</span>
+      <span class="btn-divider-pipe">|</span>
+      <span>₹{{ subtotal() | number:'1.0-0' }}</span>
+    </button>
   </div>
-  <button class="btn-primary">
-    <span>Add to Cart</span>
-    <span class="btn-divider-pipe">|</span>
-    <span>${{ product.price.toFixed(2) }}</span>
-  </button>
-</div>
+}

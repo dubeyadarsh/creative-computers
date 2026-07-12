@@ -10,24 +10,61 @@
 
       <!-- Search Bar (Strictly hidden on mobile via class) -->
       <div class="search-container hidden-mobile">
-        <div class="search-box">
-          <input type="text" placeholder="Search products">
-          <button class="search-btn">
+        <form class="search-box" (ngSubmit)="selectHighlighted()">
+          <input
+            type="text"
+            placeholder="Search products"
+            name="topSearch"
+            autocomplete="off"
+            [(ngModel)]="searchText"
+            (input)="onInput()"
+            (focus)="onFocus()"
+            (blur)="onBlur()"
+            (keydown.arrowdown)="$event.preventDefault(); moveDown()"
+            (keydown.arrowup)="$event.preventDefault(); moveUp()"
+            (keydown.escape)="showSuggestions.set(false)">
+          <button type="submit" class="search-btn" aria-label="Search">
             <mat-icon>search</mat-icon>
           </button>
-        </div>
+        </form>
+
+        @if (showSuggestions() && (suggestions().length > 0 || loadingSuggestions())) {
+          <div class="search-suggestions">
+            @if (loadingSuggestions() && suggestions().length === 0) {
+              <div class="suggestion-empty">Searching…</div>
+            }
+            @for (item of suggestions(); track item.id; let i = $index) {
+              <button
+                type="button"
+                class="suggestion-item"
+                [class.active]="i === activeIndex()"
+                (mousedown)="$event.preventDefault(); selectProduct(item)">
+                <img class="suggestion-thumb" [src]="imageOf(item)" [alt]="item.name">
+                <span class="suggestion-name">{{ item.name }}</span>
+                <span class="suggestion-price">₹{{ item.price }}</span>
+              </button>
+            }
+            @if (searchText.trim().length >= 2) {
+              <button type="button" class="suggestion-all" (mousedown)="$event.preventDefault(); search()">
+                <mat-icon>search</mat-icon>
+                See all results for "{{ searchText.trim() }}"
+              </button>
+            }
+          </div>
+        }
       </div>
 
       <!-- Action Icons -->
       <div class="header-actions">
-        <a routerLink="/cart" class="action-icon">
+        <a routerLink="/cart" class="action-icon hidden-mobile">
           <mat-icon>shopping_cart</mat-icon>
-          <span class="badge">0</span>
+          @if (cart.count() > 0) { <span class="badge">{{ cart.count() }}</span> }
         </a>
-        <a routerLink="/wishlist" class="action-icon hidden-mobile">
-          <mat-icon>favorite_border</mat-icon>
+        <a routerLink="/wishlist" class="action-icon action-fav">
+          <mat-icon>{{ favorites.count() > 0 ? 'favorite' : 'favorite_border' }}</mat-icon>
+          @if (favorites.count() > 0) { <span class="badge">{{ favorites.count() }}</span> }
         </a>
-        <a routerLink="/account" class="action-account">
+        <a routerLink="/account" class="action-account hidden-mobile">
           <div class="avatar">
             <mat-icon>person_outline</mat-icon>
           </div>

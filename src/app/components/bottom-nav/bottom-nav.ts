@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { CartService } from '../../services/cart.service';
 
 @Component({
   selector: 'app-bottom-nav',
@@ -8,4 +9,6 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
   templateUrl: './bottom-nav.html',
   styleUrls: ['./bottom-nav.css']
 })
-export class BottomNavComponent {}
+export class BottomNavComponent {
+  cart = inject(CartService);
+}

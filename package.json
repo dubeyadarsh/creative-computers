@@ -7,7 +7,7 @@
   },
   "scripts": {
     "ng": "ng",
-    "dev": "vite",
+    "dev": "node --use-system-ca ./node_modules/vite/bin/vite.js",
     "start": "npm run dev",
     "build": "vite build",
     "watch": "vite build --watch",
@@ -34,6 +34,7 @@
     "marked-gfm-heading-id": "^4.1.1",
     "marked-highlight": "^2.2.1",
     "marked-mangle": "^1.1.10",
+    "nodemailer": "^6.10.1",
     "postcss": "^8.5.3",
     "prismjs": "^1.29.0",
     "rxjs": "~7.8.0",

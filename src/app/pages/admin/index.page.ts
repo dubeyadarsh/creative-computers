@@ -1,528 +1,818 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule, NgForm } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { ShopService, Category, Product } from '../../services/shop.service';
+import { FormsModule } from '@angular/forms';
+import { MatIconModule } from '@angular/material/icon';
+import { RouteMeta } from '@analogjs/router';
+import { ShopService, CategoryAttribute } from '../../services/shop.service';
+import { NotificationService } from '../../services/notification.service';
+import { Category } from 'src/app/services/shop.types';
+import { adminGuard } from '../../guards/auth.guard';
 
-interface Toast { id: number; message: string; type: 'success' | 'error'; }
+export const routeMeta: RouteMeta = {
+  canActivate: [adminGuard],
+};
+
+// Defined Product interface to prevent 'any' type errors during build
+export interface Product {
+  id?: string;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  category_id: string;
+  is_trending: boolean;
+  is_new_arrival: boolean;
+  is_active?: boolean;
+  attributes: Record<string, any>;
+  image_urls?: string[];
+}
 
 @Component({
-  selector: 'app-admin-dashboard',
+  selector: 'app-account-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule, MatIconModule],
   template: `
-    <div class="admin-container">
-      <div class="toast-container">
-        @for (toast of toasts; track toast.id) {
-          <div class="toast" [ngClass]="toast.type">{{ toast.message }}</div>
+   <div class="account-container page-container">
+  
+  <header class="page-header">
+    <div>
+      <h1 class="page-title">Admin Dashboard</h1>
+      <p class="page-sub">Manage your catalog — categories, products, stock &amp; visibility.</p>
+    </div>
+    <a routerLink="/account" class="btn-secondary back-account">
+      <mat-icon>arrow_back</mat-icon> Account
+    </a>
+  </header>
+
+  <!-- Horizontal Scrolling Tabs -->
+  <nav class="tab-nav">
+    <button class="tab-btn" [class.active]="activeTab === 'category'" (click)="activeTab = 'category'">Manage Categories</button>
+    <button class="tab-btn" [class.active]="activeTab === 'product'" (click)="activeTab = 'product'">Manage Products</button>
+  </nav>
+
+  <!-- ==========================================
+       TAB 2: MANAGE CATEGORIES
+       ========================================== -->
+  @if (activeTab === 'category') {
+    <div class="admin-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2 class="section-subtitle" style="margin: 0;">{{ isEditingCategory ? 'Edit Category' : 'Create New Category' }}</h2>
+        @if (isEditingCategory) {
+          <button class="btn-secondary" (click)="cancelCategoryEdit()">Cancel Edit</button>
         }
       </div>
-
-      <div class="admin-header-area">
-        <div class="admin-top-bar">
-          <a routerLink="/account" class="back-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
-            Back
-          </a>
-          <h1 class="page-title">Store Admin</h1>
-          <div style="width: 60px;"></div>
-        </div>
-        <div class="segmented-control">
-          <button [class.active]="activeView === 'categories'" (click)="activeView = 'categories'">1. Categories</button>
-          <button [class.active]="activeView === 'products'" (click)="activeView = 'products'">2. Products</button>
-        </div>
-      </div>
-
-      <div class="admin-content">
-        
-        @if (activeView === 'categories') {
-          <div class="fade-in">
-            <div class="card add-card" [class.edit-mode]="editingCategoryId">
-              <div class="header-with-action">
-                <h3>{{ editingCategoryId ? 'Edit Category' : 'Create Dynamic Category' }}</h3>
-                @if (editingCategoryId) { <button type="button" class="btn-ghost-sm text-red" (click)="cancelCategoryEdit()">Cancel Edit</button> }
-              </div>
-              
-              <form (ngSubmit)="submitCategory(categoryForm)" #categoryForm="ngForm">
-                <div class="form-group">
-                  <label>Category Name</label>
-                  <input type="text" name="catName" [(ngModel)]="newCategory.name" required placeholder="e.g. Monitors">
-                </div>
-
-                <div class="form-group mt-2">
-                  <label class="checkbox-label">
-                    <input type="checkbox" name="showOnHome" [(ngModel)]="newCategory.show_on_home">
-                    <span>Pin to Home Page Categories</span>
-                  </label>
-                </div>
-
-                <div class="schema-builder mt-4">
-                  <label>Custom Attributes</label>
-                  @for (attr of newCategory.attributes; track $index) {
-                    <div class="attribute-row">
-                      <input type="text" [name]="'attrName'+$index" [(ngModel)]="attr.name" placeholder="Field Name" required>
-                      <select [name]="'attrType'+$index" [(ngModel)]="attr.type">
-                        <option value="text">Text</option>
-                        <option value="number">Number</option>
-                      </select>
-                      <button type="button" class="btn-icon text-red" (click)="removeAttribute($index)">✕</button>
-                    </div>
-                  }
-                  <button type="button" class="btn-ghost mt-2" (click)="addAttribute()">+ Add Custom Field</button>
-                </div>
-
-                <button type="submit" class="btn-primary full-btn mt-6" [disabled]="!categoryForm.valid || isSubmitting">
-                  {{ isSubmitting ? 'Saving...' : (editingCategoryId ? 'Update Category' : 'Save Category') }}
-                </button>
-              </form>
-            </div>
-
-            <h3 class="section-heading mt-6">Existing Categories</h3>
-            <div class="list-grid">
-               @for (cat of categories; track cat.id) {
-                 <div class="list-item flex-col items-start" [class.highlight-row]="editingCategoryId === cat.id">
-                    <div class="w-full flex-between">
-                      <span class="fw-bold">{{ cat.name }} @if(cat.show_on_home){<span class="badge-home">★ Home</span>}</span>
-                      <button class="btn-ghost-sm" (click)="editCategory(cat)">Edit</button>
-                    </div>
-                    <div class="schema-tags mt-2">
-                      @for (attr of cat.attributes; track attr.name) {
-                        <span class="badge">{{ attr.name }} ({{ attr.type }})</span>
-                      }
-                    </div>
-                 </div>
-               }
-            </div>
+      
+      <form (ngSubmit)="submitCategory()" #catForm="ngForm">
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label class="form-label">Category Name</label>
+            <input type="text" class="form-control" [(ngModel)]="newCategory.name" name="c_name" required placeholder="e.g. Mechanical Keyboards">
           </div>
-        }
+          
+          <div class="form-group full-width">
+            <label class="form-label">Slug (URL)</label>
+            <input type="text" class="form-control" [(ngModel)]="newCategory.slug" name="c_slug" required placeholder="e.g. mechanical-keyboards">
+          </div>
+          
+          <div class="form-group full-width">
+  <label class="form-label">Category Image {{ isEditingCategory ? '(Leave blank to keep existing)' : '' }}</label>
+  <label class="file-upload-wrapper">
+    <mat-icon style="font-size: 2rem; width:2rem; height:2rem; color: #94a3b8; margin-bottom: 0.5rem;">cloud_upload</mat-icon>
+    <div style="font-weight: 600; color: #334155;">{{ selectedCategoryFileName || 'Click to browse or drag & drop' }}</div>
+    <div style="font-size: 0.8rem; color: #94a3b8;">JPEG, PNG up to 5MB</div>
+<input
+  type="file"
+  multiple
+  (change)="onCategoryFileSelected($event)"
+  accept="image/*">  </label>
+</div>
 
-        @if (activeView === 'products') {
-          <div class="fade-in">
-            <div class="card add-card" [class.edit-mode]="editingProductId">
-              <div class="header-with-action">
-                <h3>{{ editingProductId ? 'Edit Product' : 'Add Product' }}</h3>
-                @if (editingProductId) { <button type="button" class="btn-ghost-sm text-red" (click)="cancelProductEdit(productForm)">Cancel Edit</button> }
-              </div>
-              
-              <form (ngSubmit)="submitProduct(productForm)" #productForm="ngForm" class="responsive-grid">
-                
-                <div class="form-group full-width">
-                  <label>1. Select Category</label>
-                  <select name="category_id" [(ngModel)]="newProduct.category_id" (change)="onCategorySelect()" required class="highlight-select">
-                    <option value="" disabled selected>-- Choose Category --</option>
-                    @for (cat of categories; track cat.id) { <option [value]="cat.id">{{ cat.name }}</option> }
-                  </select>
-                </div>
-                
-                <div class="form-divider full-width">Base Details</div>
-
-                <div class="form-group"><label>Product Name</label><input type="text" name="name" [(ngModel)]="newProduct.name" required></div>
-                <div class="form-group"><label>Price ($)</label><input type="number" name="price" [(ngModel)]="newProduct.price" required></div>
-                <div class="form-group"><label>Stock Qty</label><input type="number" name="stock" [(ngModel)]="newProduct.stock" required></div>
-
-                <div class="form-group full-width mt-4 mb-4">
-                  <label>Product Images</label>
-                  
-                  @if (existingImageUrls.length > 0) {
-                    <div class="preview-grid mb-2">
-                      <div class="full-width"><span class="text-xs text-muted">Currently Saved Images:</span></div>
-                      @for (url of existingImageUrls; track $index) {
-                        <div class="preview-card">
-                          <img [src]="url" alt="Existing">
-                          <button type="button" class="remove-btn" (click)="removeExistingImage($index)">✕</button>
-                        </div>
-                      }
-                    </div>
-                  }
-
-                  <div class="file-upload-wrapper">
-                    <input type="file" multiple accept="image/*" (change)="onFilesSelected($event)" id="fileInput" class="hidden-input">
-                    <label for="fileInput" class="upload-dropzone">
-                      <span class="icon">📸</span><span>Browse to add new images</span>
-                    </label>
-                  </div>
-
-                  @if (imagePreviews.length > 0) {
-                    <div class="preview-grid mt-4">
-                      <div class="full-width"><span class="text-xs text-muted">New Images to Upload:</span></div>
-                      @for (preview of imagePreviews; track $index) {
-                        <div class="preview-card new-upload">
-                          <img [src]="preview" alt="Preview">
-                          <button type="button" class="remove-btn" (click)="removePreview($index)">✕</button>
-                        </div>
-                      }
-                    </div>
-                  }
-                </div>
-                
-                <div class="form-group full-width"><label>Description</label><textarea rows="3" name="description" [(ngModel)]="newProduct.description"></textarea></div>
-
-                @if (selectedCategorySchema && selectedCategorySchema.attributes?.length) {
-                  <div class="form-divider full-width custom-section">Category Specific Details</div>
-                  @for (attr of selectedCategorySchema.attributes; track attr.name) {
-                    <div class="form-group">
-                      <label>{{ attr.name }}</label>
-                      <input [type]="attr.type" [name]="'attr_' + attr.name" [(ngModel)]="newProduct.attributes[attr.name]" required>
-                    </div>
-                  }
-                }
-
-                <div class="form-group full-width mt-6">
-                  <button type="submit" class="btn-primary full-btn" [disabled]="!productForm.valid || isSubmitting">
-                    {{ isSubmitting ? 'Processing...' : (editingProductId ? 'Update Product' : 'Save Product') }}
-                  </button>
-                </div>
-              </form>
+          <div class="form-group full-width toggle-wrapper">
+            <div>
+              <label class="form-label">Show on Home Page</label>
+              <div style="font-size: 0.8rem; color: #64748b;">Display this category in the scrolling navbar.</div>
             </div>
+            <label class="toggle-switch">
+              <input type="checkbox" [(ngModel)]="newCategory.show_on_home" name="c_show">
+              <span class="slider"></span>
+            </label>
+          </div>
 
-            <div class="header-with-action mt-6">
-              <h3 class="section-heading" style="margin:0;">Existing Products</h3>
-              <span class="text-xs text-muted">Total: {{ totalProducts }}</span>
+          <div class="form-group full-width attributes-box">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <label class="form-label">Category Attributes</label>
+              <button type="button" class="btn-secondary" (click)="addCategoryAttribute()">+ Add Field</button>
             </div>
-
-            <div class="list-grid mt-4">
-               @if(products.length === 0 && !isLoadingProducts) {
-                 <div class="empty-state text-muted text-sm text-center p-4 border rounded">No products found.</div>
-               }
-               @for (prod of products; track prod.id) {
-                 <div class="list-item w-full flex-between" [class.highlight-row]="editingProductId === prod.id">
-                    <div style="display: flex; gap: 12px; align-items: center;">
-                      <img [src]="prod.image_urls?.[0] || 'assets/placeholder.jpg'" style="width:40px; height:40px; object-fit:cover; border-radius: 6px; background: #f1f5f9;">
-                      <div class="flex-col items-start">
-                        <span class="fw-bold" style="font-size: 13px;">{{ prod.name }}</span>
-                        <span class="text-xs text-muted">&#36;{{ prod.price }} • Stock: {{ prod.stock }}</span>
-                      </div>
-                    </div>
-                    <button class="btn-ghost-sm" (click)="editProduct(prod)">Edit</button>
-                 </div>
-               }
-            </div>
-
-            @if (totalPages > 1) {
-              <div class="pagination-bar mt-4">
-                <button class="btn-ghost-sm" (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">Previous</button>
-                <span class="text-sm fw-bold">Page {{ currentPage }} of {{ totalPages }}</span>
-                <button class="btn-ghost-sm" (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages">Next</button>
+            
+            @for (attr of newCategory.attributes; track $index) {
+              <div class="attribute-row">
+                <input type="text" class="form-control" style="flex: 2" [(ngModel)]="attr.name" name="attr_name_{{$index}}" placeholder="Attribute Name (e.g. Color)">
+                <select class="form-control" style="flex: 1" [(ngModel)]="attr.type" name="attr_type_{{$index}}">
+                  <option value="text">Text</option>
+                  <option value="number">Number</option>
+                </select>
+                <button type="button" class="btn-remove" (click)="removeCategoryAttribute($index)">
+                  <mat-icon>delete</mat-icon>
+                </button>
               </div>
             }
+          </div>
+        </div>
 
+<button type="submit" class="btn-submit" [disabled]="isSubmitting || !catForm.form.valid || (!isEditingCategory && selectedCategoryFiles.length === 0)">
+          @if (isSubmitting) { <mat-icon class="spin-icon">autorenew</mat-icon> Saving... } 
+          @else { {{ isEditingCategory ? 'Update Category' : 'Save Category' }} }
+        </button>
+      </form>
+
+      <!-- Category List for Editing -->
+      <hr style="margin: 3rem 0; border: 1px solid #e2e8f0;">
+      <h3 class="form-label" style="font-size: 1.1rem; margin-bottom: 1rem;">Existing Categories</h3>
+      <div class="list-container">
+        @for (cat of categories; track cat.id) {
+          <div class="list-item">
+            <div class="li-media">
+              @if (cat.image_urls && cat.image_urls.length > 0) {
+                <img [src]="cat.image_urls[0]" [alt]="cat.name" />
+              } @else {
+                <div class="li-media--ph"><mat-icon>category</mat-icon></div>
+              }
+            </div>
+            <div class="li-info">
+              <span class="li-name">{{ cat.name }}</span>
+              @if (cat.show_on_home) { <span class="badge badge-home">On Home</span> }
+            </div>
+            <div class="list-item-actions">
+              <button class="icon-btn" title="Edit" (click)="editCategory(cat)">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button class="icon-btn icon-btn--danger" title="Delete" (click)="deleteCategory(cat)" [disabled]="isSubmitting">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
           </div>
         }
       </div>
     </div>
+  }
+
+  <!-- ==========================================
+       TAB 3: MANAGE PRODUCTS
+       ========================================== -->
+  @if (activeTab === 'product') {
+    <div class="admin-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2 class="section-subtitle" style="margin: 0;">{{ isEditingProduct ? 'Edit Product' : 'Create New Product' }}</h2>
+        @if (isEditingProduct) {
+          <button class="btn-secondary" (click)="cancelProductEdit()">Cancel Edit</button>
+        }
+      </div>
+      
+      <form (ngSubmit)="submitProduct()" #prodForm="ngForm">
+        <div class="form-grid">
+          
+          <div class="form-group full-width">
+            <label class="form-label">Product Name</label>
+            <input type="text" class="form-control" [(ngModel)]="newProduct.name" name="p_name" required>
+          </div>
+          
+          <div class="form-group full-width">
+            <label class="form-label">Description</label>
+            <textarea class="form-control" [(ngModel)]="newProduct.description" name="p_desc" required></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Price (₹)</label>
+            <input type="number" class="form-control" [(ngModel)]="newProduct.price" name="p_price" required min="0">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Stock Quantity</label>
+            <input type="number" class="form-control" [(ngModel)]="newProduct.stock" name="p_stock" required min="0">
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label">Select Category</label>
+            <select class="form-control" [(ngModel)]="newProduct.category_id" name="p_cat" required (change)="onCategorySelect()">
+              <option value="" disabled selected>-- Choose Category --</option>
+              @for (cat of categories; track cat.id) {
+                <option [value]="cat.id">{{ cat.name }}</option>
+              }
+            </select>
+          </div>
+
+          @if (selectedCategoryAttributes.length > 0) {
+            <div class="form-group full-width attributes-box">
+              <label class="form-label">Product Specifications</label>
+              <div class="form-grid">
+                @for (attr of selectedCategoryAttributes; track attr.name) {
+                  <div class="form-group">
+                    <label class="form-label">{{ attr.name }}</label>
+                    <input [type]="attr.type" class="form-control" [(ngModel)]="newProduct.attributes[attr.name]" name="p_attr_{{attr.name}}" required>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <div class="form-group full-width toggle-wrapper">
+            <label class="form-label">Mark as Trending (Shows in Promo Carousel)</label>
+            <label class="toggle-switch">
+              <input type="checkbox" [(ngModel)]="newProduct.is_trending" name="p_trend">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="form-group full-width toggle-wrapper">
+            <label class="form-label">Mark as New Arrival</label>
+            <label class="toggle-switch">
+              <input type="checkbox" [(ngModel)]="newProduct.is_new_arrival" name="p_new">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Image Upload -->
+          <div class="form-group full-width">
+            <label class="form-label">Product Image {{ isEditingProduct ? '(Leave blank to keep existing)' : '' }}</label>
+            <label class="file-upload-wrapper">
+              <mat-icon style="font-size: 2rem; width:2rem; height:2rem; color: #94a3b8; margin-bottom: 0.5rem;">cloud_upload</mat-icon>
+              <div style="font-weight: 600; color: #334155;">{{ selectedFileName || 'Click to browse or drag & drop' }}</div>
+              <div style="font-size: 0.8rem; color: #94a3b8;">JPEG, PNG up to 5MB</div>
+              <input type="file" (change)="onFileSelected($event)" accept="image/*">
+            </label>
+          </div>
+          
+        </div>
+
+        <!-- In edit mode, file is optional. In create mode, file is required. -->
+        <button type="submit" class="btn-submit" [disabled]="isSubmitting || !prodForm.form.valid || (!isEditingProduct && !selectedFile)">
+          @if (isSubmitting) { <mat-icon class="spin-icon">autorenew</mat-icon> Uploading... } 
+          @else { {{ isEditingProduct ? 'Update Product' : 'Publish Product' }} }
+        </button>
+      </form>
+
+      <!-- Product List for Editing -->
+      <hr style="margin: 3rem 0; border: 1px solid #e2e8f0;">
+
+      <div class="list-header">
+        <h3 class="form-label" style="font-size: 1.1rem; margin: 0;">
+          Existing Products <span class="muted-count">({{ productTotal }})</span>
+        </h3>
+        <div class="search-inline">
+          <mat-icon>search</mat-icon>
+          <input type="text" placeholder="Search products…" [(ngModel)]="productSearch" (ngModelChange)="onProductSearch($event)" name="prod_search" />
+          @if (productSearch) { <button type="button" class="clear-x" (click)="clearProductSearch()">✕</button> }
+        </div>
+      </div>
+
+      @if (productsLoading) {
+        <div class="list-container">
+          @for (s of [1,2,3,4,5]; track s) {
+            <div class="list-item list-item--sk">
+              <div class="li-media sk-box"></div>
+              <div class="li-info"><span class="sk-box sk-line"></span></div>
+            </div>
+          }
+        </div>
+      } @else if (products.length === 0) {
+        <div class="empty-note">
+          <mat-icon>inventory_2</mat-icon>
+          <p>No products found{{ productSearch ? ' for “' + productSearch + '”' : '' }}.</p>
+        </div>
+      } @else {
+        <div class="list-container">
+          @for (prod of products; track prod.id) {
+            <div class="list-item" [class.list-item--hidden]="prod.is_active === false">
+              <div class="li-media">
+                @if (prod.image_urls && prod.image_urls.length > 0) {
+                  <img [src]="prod.image_urls[0]" [alt]="prod.name" />
+                } @else {
+                  <div class="li-media--ph"><mat-icon>image</mat-icon></div>
+                }
+              </div>
+              <div class="li-info">
+                <span class="li-name">{{ prod.name }}</span>
+                <div class="li-meta">
+                  <span class="li-price">₹{{ prod.price | number:'1.0-0' }}</span>
+                  @if (prod.stock > 0) {
+                    <span class="badge badge-stock">In stock · {{ prod.stock }}</span>
+                  } @else {
+                    <span class="badge badge-oos">Out of stock</span>
+                  }
+                  @if (prod.is_active === false) { <span class="badge badge-hidden">Hidden</span> }
+                  @if (prod.is_trending) { <span class="badge badge-trend">Trending</span> }
+                </div>
+              </div>
+              <div class="list-item-actions">
+                <button class="icon-btn" title="Edit" (click)="editProduct(prod)">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button class="icon-btn" [title]="prod.stock > 0 ? 'Mark out of stock' : 'Restock (set to 1)'" (click)="toggleStock(prod)" [disabled]="rowBusyId === prod.id">
+                  <mat-icon>{{ prod.stock > 0 ? 'remove_shopping_cart' : 'add_shopping_cart' }}</mat-icon>
+                </button>
+                <button class="icon-btn" [title]="prod.is_active === false ? 'Show on store' : 'Hide from store'" (click)="toggleHidden(prod)" [disabled]="rowBusyId === prod.id">
+                  <mat-icon>{{ prod.is_active === false ? 'visibility_off' : 'visibility' }}</mat-icon>
+                </button>
+                <button class="icon-btn icon-btn--danger" title="Delete" (click)="deleteProduct(prod)" [disabled]="rowBusyId === prod.id">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Pagination -->
+        @if (productTotalPages > 1) {
+          <div class="pagination">
+            <button class="page-btn" [disabled]="productPage === 1" (click)="goToProductPage(productPage - 1)">
+              <mat-icon>chevron_left</mat-icon> Prev
+            </button>
+            <span class="page-info">Page {{ productPage }} of {{ productTotalPages }}</span>
+            <button class="page-btn" [disabled]="productPage >= productTotalPages" (click)="goToProductPage(productPage + 1)">
+              Next <mat-icon>chevron_right</mat-icon>
+            </button>
+          </div>
+        }
+      }
+    </div>
+  }
+</div>
   `,
   styles: [`
-    .admin-container { min-height: 100dvh; background: var(--neutral-50); padding-bottom: 6rem; position: relative; }
-    .toast-container { position: fixed; top: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; }
-    .toast { padding: 1rem 1.5rem; border-radius: var(--radius-md); color: white; font-weight: 600; font-size: 14px; box-shadow: var(--shadow-lg); animation: slideIn 0.3s ease forwards; }
-    .toast.success { background: #10b981; }
-    .toast.error { background: #ef4444; }
-    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+   /* --- ALL PREVIOUS STYLES REMAIN --- */
+.account-container { padding-top: 2rem; padding-bottom: 5rem; max-width: 1000px; margin: 0 auto; }
+.page-header { margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.page-title { font-size: 2rem; font-weight: 800; color: var(--text-main, #0f172a); letter-spacing: -0.03em; }
+.page-sub { color: var(--text-muted, #64748b); font-size: 0.9rem; margin-top: 0.25rem; }
+.back-account { display: inline-flex; align-items: center; gap: 0.35rem; text-decoration: none; color: #334155; flex-shrink: 0; }
+.back-account mat-icon { font-size: 18px; width: 18px; height: 18px; }
+.tab-nav { display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border-color, #e2e8f0); overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.tab-nav::-webkit-scrollbar { display: none; }
+.tab-btn { background: transparent; border: none; padding: 1rem 0.5rem; font-size: 1rem; font-weight: 600; color: var(--text-muted, #64748b); cursor: pointer; position: relative; white-space: nowrap; transition: color 0.3s ease; }
+.tab-btn:hover, .tab-btn.active { color: var(--primary-color, #3b82f6); }
+.tab-btn.active::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 3px; background: var(--primary-color, #3b82f6); border-radius: 3px 3px 0 0; }
+.admin-card { background: #ffffff; border-radius: 16px; padding: 2.5rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04); border: 1px solid rgba(0,0,0,0.02); }
+.section-subtitle { font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-main); }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.form-group.full-width { grid-column: 1 / -1; }
+.form-label { font-size: 0.9rem; font-weight: 600; color: var(--text-main); }
+.form-control { padding: 0.85rem 1rem; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 0.95rem; background: #f8fafc; transition: all 0.2s ease; font-family: inherit; }
+.form-control:focus { outline: none; border-color: var(--primary-color, #3b82f6); background: #ffffff; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+textarea.form-control { resize: vertical; min-height: 100px; }
+.attributes-box { background: #f1f5f9; border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+.attribute-row { display: flex; gap: 1rem; align-items: center; }
+.btn-remove { background: #fee2e2; color: #ef4444; border: none; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; }
+.btn-remove:hover { background: #fecaca; }
+.toggle-wrapper { display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
+.toggle-switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+input:checked + .slider { background-color: var(--primary-color, #3b82f6); }
+input:checked + .slider:before { transform: translateX(22px); }
+.file-upload-wrapper { border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2rem; text-align: center; background: #f8fafc; cursor: pointer; transition: border-color 0.3s; }
+.file-upload-wrapper:hover { border-color: var(--primary-color); }
+.file-upload-wrapper input[type="file"] { display: none; }
+.btn-submit { background: var(--text-main); color: white; border: none; padding: 1rem 2rem; font-size: 1rem; font-weight: 700; border-radius: 10px; cursor: pointer; width: 100%; margin-top: 1.5rem; transition: background 0.2s, transform 0.2s; display: flex; justify-content: center; align-items: center; gap: 0.5rem; }
+.btn-submit:hover { background: #000; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+.btn-submit:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+.btn-secondary { background: white; border: 1px solid #cbd5e1; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.btn-danger { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+.btn-danger:hover:not(:disabled) { background: #fecaca; }
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+.list-item-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
 
-    .admin-header-area { position: sticky; top: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); z-index: 100; border-bottom: 1px solid var(--neutral-200); padding: env(safe-area-inset-top) 1rem 1rem; }
-    .admin-top-bar { display: flex; align-items: center; justify-content: space-between; height: 60px; }
-    .back-btn { display: flex; align-items: center; gap: 4px; color: var(--neutral-600); font-weight: 600; text-decoration: none; width: 60px; }
-    .back-btn svg { width: 20px; height: 20px; }
-    .page-title { font-family: var(--font-display); font-size: var(--text-lg); margin: 0; }
+/* --- LIST VIEWS --- */
+.list-container { display: flex; flex-direction: column; gap: 0.6rem; }
+.list-item { display: flex; align-items: center; gap: 0.9rem; padding: 0.7rem 0.9rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; font-weight: 500; transition: box-shadow 0.2s, border-color 0.2s; }
+.list-item:hover { box-shadow: 0 6px 18px rgba(15,23,42,0.06); border-color: #cbd5e1; }
+.list-item--hidden { opacity: 0.62; background: #f8fafc; }
 
-    .segmented-control { display: flex; background: var(--neutral-100); padding: 4px; border-radius: var(--radius-lg); margin-top: 0.5rem; }
-    .segmented-control button { flex: 1; padding: 8px 0; border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: 600; color: var(--neutral-600); transition: all 0.2s; border: none; }
-    .segmented-control button.active { background: var(--neutral-0); color: var(--brand-600); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+.li-media { width: 48px; height: 48px; border-radius: 10px; overflow: hidden; flex-shrink: 0; background: #f1f5f9; }
+.li-media img { width: 100%; height: 100%; object-fit: cover; }
+.li-media--ph { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #94a3b8; }
+.li-media--ph mat-icon { font-size: 22px; width: 22px; height: 22px; }
 
-    .admin-content { padding: 1.5rem 1rem; max-width: 800px; margin: 0 auto; }
-    .card { background: white; padding: 1.5rem; border-radius: var(--radius-xl); border: 1px solid var(--neutral-200); box-shadow: var(--shadow-card); transition: border-color 0.3s; }
-    .card.edit-mode { border: 2px solid var(--brand-400); box-shadow: 0 4px 20px rgba(99, 102, 241, 0.1); }
-    
-    .header-with-action { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--neutral-100); padding-bottom: 1rem; }
-    .header-with-action h3 { margin: 0; font-family: var(--font-display); }
-    .highlight-row { background: var(--brand-50) !important; border-color: var(--brand-200) !important; }
+.li-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.li-name { font-weight: 700; color: var(--text-main, #0f172a); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.li-meta { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.li-price { font-weight: 700; color: #0f172a; font-size: 0.9rem; }
 
-    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem;}
-    label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--neutral-500); letter-spacing: 0.05em; }
-    input, select, textarea { padding: 12px 14px; border: 1px solid var(--neutral-200); border-radius: var(--radius-md); background: var(--neutral-50); font-size: 15px; width: 100%; box-sizing: border-box; }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--brand-400); background: white; }
-    
-    .checkbox-label { display: flex; align-items: center; flex-direction: row; gap: 8px; font-size: 14px; text-transform: none; color: var(--neutral-900); cursor: pointer; font-weight: 600; background: var(--neutral-50); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--neutral-200);}
-    .checkbox-label input { width: 18px; height: 18px; margin: 0; accent-color: var(--brand-600); cursor: pointer; }
+.badge { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 0.2rem 0.5rem; border-radius: 999px; }
+.badge-stock { background: #ecfdf5; color: #059669; }
+.badge-oos { background: #fef2f2; color: #dc2626; }
+.badge-hidden { background: #f1f5f9; color: #64748b; }
+.badge-trend { background: #fff7ed; color: #ea580c; }
+.badge-home { background: #eef2ff; color: #4f46e5; }
 
-    .highlight-select { border: 2px solid var(--brand-200); background: var(--brand-50); font-weight: 600; color: var(--brand-700); }
-    .form-divider { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--brand-500); border-bottom: 1px solid var(--neutral-200); padding-bottom: 0.5rem; margin: 1rem 0; letter-spacing: 0.05em;}
-    .custom-section { color: #8b5cf6; border-bottom-color: #ede9fe; }
+/* Icon action buttons */
+.icon-btn { width: 38px; height: 38px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; color: #475569; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.18s; }
+.icon-btn:hover:not(:disabled) { background: #f1f5f9; color: #0f172a; border-color: #cbd5e1; transform: translateY(-1px); }
+.icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.icon-btn mat-icon { font-size: 19px; width: 19px; height: 19px; }
+.icon-btn--danger { color: #dc2626; }
+.icon-btn--danger:hover:not(:disabled) { background: #fee2e2; color: #b91c1c; border-color: #fecaca; }
 
-    .schema-builder { background: var(--neutral-50); padding: 1rem; border-radius: var(--radius-lg); border: 1px dashed var(--neutral-300); }
-    .attribute-row { display: grid; grid-template-columns: 1fr 100px 40px; gap: 8px; margin-bottom: 8px; align-items: center; }
-    
-    .btn-icon { background: none; border: none; font-size: 18px; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; }
-    .btn-ghost-sm { background: transparent; border: 1px solid var(--neutral-300); padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--neutral-700); }
-    .btn-ghost-sm:hover:not(:disabled) { background: var(--neutral-100); }
-    .btn-ghost-sm:disabled { opacity: 0.5; cursor: not-allowed; }
-    .text-red { color: #ef4444 !important; border-color: #fca5a5 !important;}
-    .btn-ghost { background: transparent; border: 1px solid var(--brand-200); color: var(--brand-600); padding: 8px; border-radius: var(--radius-md); font-weight: 600; width: 100%; cursor: pointer; }
+/* List header + inline search */
+.list-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.muted-count { color: #94a3b8; font-weight: 600; }
+.search-inline { display: flex; align-items: center; gap: 0.4rem; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 999px; padding: 0.35rem 0.85rem; min-width: 220px; }
+.search-inline mat-icon { color: #94a3b8; font-size: 20px; width: 20px; height: 20px; }
+.search-inline input { border: none; background: transparent; outline: none; font-size: 0.9rem; font-family: inherit; flex: 1; min-width: 0; }
+.clear-x { border: none; background: none; color: #94a3b8; cursor: pointer; font-size: 0.85rem; }
 
-    .full-btn { width: 100%; height: 48px; font-size: 15px; border: none; border-radius: var(--radius-md); cursor: pointer;}
-    .btn-primary { background: var(--gradient-brand); color: white; font-weight: 600; }
-    
-    .list-grid { display: flex; flex-direction: column; gap: 0.75rem; }
-    .list-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: white; border-radius: var(--radius-md); border: 1px solid var(--neutral-200); box-shadow: var(--shadow-sm); }
-    .flex-col { display: flex; flex-direction: column; }
-    .flex-between { display: flex; justify-content: space-between; align-items: center; width: 100%;}
-    .items-start { align-items: flex-start; }
-    .fw-bold { font-weight: 600; font-size: var(--text-sm); display: flex; align-items: center; gap: 8px;}
-    .w-full { width: 100%; }
-    
-    .schema-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-    .badge { font-size: 10px; background: var(--neutral-100); padding: 4px 8px; border-radius: 4px; color: var(--neutral-600); font-weight: 600;}
-    .badge-home { font-size: 10px; background: #FEF3C7; color: #B45309; padding: 3px 6px; border-radius: 4px; font-weight: 800;}
+/* Pagination */
+.pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1.5rem; }
+.page-btn { display: inline-flex; align-items: center; gap: 0.2rem; padding: 0.5rem 1rem; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; font-weight: 600; color: #334155; cursor: pointer; transition: all 0.18s; }
+.page-btn:hover:not(:disabled) { background: #f1f5f9; }
+.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.page-btn mat-icon { font-size: 20px; width: 20px; height: 20px; }
+.page-info { font-size: 0.88rem; font-weight: 600; color: #64748b; }
 
-    .hidden-input { display: none; }
-    .upload-dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; border: 2px dashed var(--brand-300); background: var(--brand-50); border-radius: var(--radius-lg); cursor: pointer; color: var(--brand-600); font-weight: 600; transition: all 0.2s; }
-    .upload-dropzone:hover { background: var(--brand-100); border-color: var(--brand-400); }
-    .upload-dropzone .icon { font-size: 20px; margin-bottom: 4px; }
+/* Empty + skeleton */
+.empty-note { text-align: center; padding: 2.5rem 1rem; color: #94a3b8; }
+.empty-note mat-icon { font-size: 40px; width: 40px; height: 40px; margin-bottom: 0.5rem; }
+.list-item--sk { pointer-events: none; }
+.sk-box { background: linear-gradient(90deg,#eef2f6 25%,#f6f8fa 50%,#eef2f6 75%); background-size: 200% 100%; animation: sk 1.3s ease-in-out infinite; }
+.sk-line { height: 14px; width: 55%; border-radius: 6px; }
+@keyframes sk { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-    .preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; width: 100%; }
-    .preview-card { position: relative; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--neutral-200); aspect-ratio: 1; }
-    .preview-card.new-upload { border: 2px solid var(--brand-400); }
-    .preview-card img { width: 100%; height: 100%; object-fit: cover; }
-    .preview-card .remove-btn { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-
-    /* Pagination */
-    .pagination-bar { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: white; border-radius: var(--radius-md); border: 1px solid var(--neutral-200); box-shadow: var(--shadow-sm); }
-    .p-4 { padding: 1rem; } .border { border: 1px solid var(--neutral-200); } .rounded { border-radius: var(--radius-md); } .text-center { text-align: center; }
-
-    .mt-2 { margin-top: 0.5rem; }
-    .mt-4 { margin-top: 1rem; }
-    .mt-6 { margin-top: 1.5rem; }
-    .mb-2 { margin-bottom: 0.5rem; }
-    .mb-4 { margin-bottom: 1rem; }
-    .text-muted { color: var(--neutral-500); }
-    .text-xs { font-size: 11px; }
-    .text-sm { font-size: 13px; }
-    .fade-in { animation: fadeIn 0.3s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-    @media (min-width: 768px) {
-      .admin-content { padding: 2.5rem 2rem; }
-      .card { padding: 2rem; }
-      .responsive-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.5rem; }
-      .form-group { margin-bottom: 0; }
-      .full-width { grid-column: 1 / -1; }
-      .list-grid { display: grid; grid-template-columns: 1fr 1fr; }
-    }
+@media (max-width: 768px) {
+  .account-container { padding: 1rem; }
+  .admin-card { padding: 1.5rem; border-radius: 12px; }
+  .form-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .page-title { font-size: 1.5rem; }
+  .attribute-row { flex-direction: column; align-items: stretch; background: #fff; padding: 1rem; border-radius: 8px; }
+  .btn-remove { width: 100%; }
+  .tab-nav { padding-bottom: 5px; }
+  .tab-btn { font-size: 0.9rem; padding: 0.75rem 0.5rem; }
+}
   `]
 })
-export default class AdminDashboard implements OnInit {
+export default class AccountPage implements OnInit {
   private shopService = inject(ShopService);
-
-  activeView: 'categories' | 'products' = 'categories';
-  isSubmitting = false;
-
-  categories: Category[] = [];
+  private notify = inject(NotificationService);
   
-  // Pagination State
-  products: Product[] = [];
-  isLoadingProducts = false;
-  currentPage = 1;
-  itemsPerPage = 10;
-  totalProducts = 0;
-  totalPages = 1;
+  // UI State
+  activeTab: 'category' | 'product' = 'category';
+  isSubmitting: boolean = false;
 
-  selectedCategorySchema: Category | null = null;
-  editingCategoryId: string | null = null;
-  editingProductId: string | null = null;
+  // Global Data
+  categories: Category[] = [];
+  products: Product[] = []; // Used to populate the edit list
 
-  newCategory: Category = { name: '', attributes: [], show_on_home: false };
-  newProduct: Product = { name: '', price: null as any, category_id: '', description: '', stock: 1, uploaded_by: 'admin_adarsh', attributes: {} };
+  // Product list pagination + search
+  productPage = 1;
+  readonly productPageSize = 10;
+  productTotal = 0;
+  productTotalPages = 1;
+  productsLoading = false;
+  productSearch = '';
+  rowBusyId: string | null = null;
+  private productSearchTimer: any = null;
 
-  selectedFiles: File[] = [];
-  imagePreviews: string[] = [];
-  existingImageUrls: string[] = [];
+  // =====================================
+  // CATEGORY FORM STATE & LOGIC
+  // =====================================
+  isEditingCategory = false;
+  currentCategoryId: string | null = null;
+  
+  newCategory: Partial<Category> & { attributes: CategoryAttribute[] } = this.getEmptyCategory();
+  
+  // State for category image files (multiple)
+  selectedCategoryFiles: File[] = [];
+  selectedCategoryFileName: string = '';
+  existingCategoryImageUrls: string[] = []; // to preserve old images on update
 
-  toasts: Toast[] = [];
-  private toastIdCounter = 0;
-
-  ngOnInit() {
-    this.loadCategories();
-    this.loadProducts(this.currentPage);
+  getEmptyCategory() {
+    return { name: '', slug: '', show_on_home: false, attributes: [] };
   }
 
-  showToast(message: string, type: 'success' | 'error') {
-    const id = this.toastIdCounter++;
-    this.toasts.push({ id, message, type });
-    setTimeout(() => { this.toasts = this.toasts.filter(t => t.id !== id); }, 3000);
+  addCategoryAttribute(): void {
+    this.newCategory.attributes.push({ name: '', type: 'text' });
   }
 
-  loadCategories() {
-    this.shopService.getCategories().subscribe({
-      next: (res) => this.categories = res.data,
-      error: () => this.showToast('Failed to load categories', 'error')
+  removeCategoryAttribute(index: number): void {
+    this.newCategory.attributes.splice(index, 1);
+  }
+
+  onCategoryFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files) return;
+    this.selectedCategoryFiles = Array.from(input.files);
+    this.selectedCategoryFileName = this.selectedCategoryFiles.map(f => f.name).join(', ');
+  }
+
+  editCategory(cat: Category): void {
+    this.isEditingCategory = true;
+    this.currentCategoryId = cat.id || null;
+    this.newCategory = JSON.parse(JSON.stringify(cat));
+    // Store existing image URLs if your Category type includes them
+    this.existingCategoryImageUrls = (cat as any).image_urls || [];
+    this.selectedCategoryFiles = [];
+    this.selectedCategoryFileName = 'Keep existing image(s)';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  cancelCategoryEdit(): void {
+    this.isEditingCategory = false;
+    this.currentCategoryId = null;
+    this.newCategory = this.getEmptyCategory();
+    this.selectedCategoryFiles = [];
+    this.selectedCategoryFileName = '';
+    this.existingCategoryImageUrls = [];
+  }
+
+  submitCategory(): void {
+    // Require at least one file only when creating
+    if (!this.isEditingCategory && this.selectedCategoryFiles.length === 0) {
+      this.notify.error('Please upload at least one category image.');
+      return;
+    }
+
+    this.isSubmitting = true;
+
+    const formData = new FormData();
+    formData.append('name', this.newCategory.name || '');
+    formData.append('slug', this.newCategory.slug || '');
+    formData.append('show_on_home', String(this.newCategory.show_on_home));
+    formData.append('attributes', JSON.stringify(this.newCategory.attributes));
+
+    // On update, tell backend which existing images to keep
+    if (this.isEditingCategory) {
+      formData.append('existing_images', JSON.stringify(this.existingCategoryImageUrls));
+    }
+
+    // Append new files
+    this.selectedCategoryFiles.forEach(file => {
+      formData.append('images', file);
+    });
+
+    const request = this.isEditingCategory && this.currentCategoryId
+      ? this.shopService.updateCategory(this.currentCategoryId, formData)
+      : this.shopService.createCategory(formData);
+
+    request.subscribe({
+      next: () => {
+        this.notify.success(`Category ${this.isEditingCategory ? 'updated' : 'created'} successfully!`);
+        this.isSubmitting = false;
+        this.loadCategories();
+        this.cancelCategoryEdit();
+      },
+      error: (err: any) => {
+        console.error(err);
+        this.notify.error(`Failed to ${this.isEditingCategory ? 'update' : 'create'} category.`);
+        this.isSubmitting = false;
+      }
     });
   }
 
-  // --- SERVER PAGINATION METHODS ---
-  loadProducts(page: number) {
-    this.isLoadingProducts = true;
-    this.shopService.getProducts(page, this.itemsPerPage).subscribe({
-      next: (res) => {
-        this.products = res.data;
-        if (res.meta) {
-          this.totalProducts = res.meta.total;
-          this.currentPage = res.meta.page;
-          this.totalPages = Math.ceil(this.totalProducts / this.itemsPerPage) || 1;
+  deleteCategory(cat: Category): void {
+    if (!cat.id) return;
+
+    const confirmed = confirm(`Delete category "${cat.name}"? This cannot be undone.`);
+    if (!confirmed) return;
+
+    this.isSubmitting = true;
+    this.shopService.deleteCategory(cat.id).subscribe({
+      next: () => {
+        this.notify.success('Category deleted successfully!');
+        this.isSubmitting = false;
+        // If we were editing the deleted category, reset the form.
+        if (this.currentCategoryId === cat.id) {
+          this.cancelCategoryEdit();
         }
-        this.isLoadingProducts = false;
+        this.loadCategories();
+      },
+      error: (err: any) => {
+        console.error(err);
+        const message =
+          err?.error?.statusMessage || err?.error?.message || 'Failed to delete category.';
+        this.notify.error(message);
+        this.isSubmitting = false;
+      }
+    });
+  }
+
+  // =====================================
+  // PRODUCT FORM STATE & LOGIC
+  // =====================================
+  isEditingProduct = false;
+  currentProductId: string | null = null;
+  
+  newProduct: Product = this.getEmptyProduct();
+  selectedFile: File | null = null;
+  selectedFileName: string = ''; // for display
+  selectedCategoryAttributes: CategoryAttribute[] = [];
+
+  getEmptyProduct(): Product {
+    return { name: '', description: '', price: 0, stock: 1, category_id: '', is_trending: false, is_new_arrival: false, attributes: {} };
+  }
+
+  editProduct(prod: Product): void {
+    this.isEditingProduct = true;
+    this.currentProductId = prod.id || null;
+    this.newProduct = JSON.parse(JSON.stringify(prod));
+    
+    // Trigger category selection to load the attributes UI
+    this.onCategorySelect(); 
+    
+    // Ensure existing attributes populate correctly
+    this.newProduct.attributes = typeof prod.attributes === 'string' ? JSON.parse(prod.attributes) : (prod.attributes || {});
+    
+    this.selectedFile = null;
+    this.selectedFileName = 'Keep existing image'; 
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  cancelProductEdit(): void {
+    this.isEditingProduct = false;
+    this.currentProductId = null;
+    this.newProduct = this.getEmptyProduct();
+    this.selectedFile = null;
+    this.selectedFileName = '';
+    this.selectedCategoryAttributes = [];
+  }
+
+  onCategorySelect(): void {
+    const selectedCat = this.categories.find(c => c.id === this.newProduct.category_id);
+    this.selectedCategoryAttributes = selectedCat?.attributes || [];
+    
+    // Only reset attributes if we are NOT actively setting up an edit
+    if (!this.isEditingProduct) {
+      this.newProduct.attributes = {};
+    }
+  }
+
+  onFileSelected(event: any): void {
+    const file = event.target.files[0];
+    if (file) {
+      this.selectedFile = file;
+      this.selectedFileName = file.name;
+    }
+  }
+
+  submitProduct(): void {
+    // File is only strictly required if we are creating a new product
+    if (!this.isEditingProduct && !this.selectedFile) {
+      this.notify.error('Please upload a product image.');
+      return;
+    }
+
+    this.isSubmitting = true;
+    const formData = new FormData();
+    formData.append('name', this.newProduct.name);
+    formData.append('description', this.newProduct.description);
+    formData.append('price', this.newProduct.price.toString());
+    formData.append('stock', this.newProduct.stock.toString());
+    formData.append('category_id', this.newProduct.category_id);
+    
+    formData.append('is_trending', this.newProduct.is_trending.toString());
+    formData.append('is_new_arrival', this.newProduct.is_new_arrival.toString());
+    formData.append('attributes', JSON.stringify(this.newProduct.attributes));
+    
+    // Only append file if one was selected (crucial for updates)
+    if (this.selectedFile) {
+      formData.append('images', this.selectedFile);
+    }
+
+    const request = this.isEditingProduct && this.currentProductId
+      ? this.shopService.updateProduct(this.currentProductId, formData)
+      : this.shopService.createProduct(formData);
+
+    request.subscribe({
+      next: () => {
+        this.notify.success(`Product ${this.isEditingProduct ? 'updated' : 'uploaded'} successfully!`);
+        this.isSubmitting = false;
+        this.loadProducts();
+        this.cancelProductEdit();
+      },
+      error: (err: any) => {
+        console.error(err);
+        this.notify.error(`Failed to ${this.isEditingProduct ? 'update' : 'upload'} product.`);
+        this.isSubmitting = false;
+      }
+    });
+  }
+
+  // =====================================
+  // INITIALIZATION & DATA LOADING
+  // =====================================
+  ngOnInit(): void {
+    this.loadCategories();
+    this.loadProducts();
+  }
+
+  loadCategories(): void {
+    this.shopService.getCategories().subscribe({
+      next: (res: any) => this.categories = res.data || res,
+      error: (err: any) => {
+        console.error('Failed to load categories', err);
+        this.notify.error('Failed to load categories.');
+      }
+    });
+  }
+
+  loadProducts(): void {
+    this.productsLoading = true;
+    this.shopService
+      .queryProducts({
+        page: this.productPage,
+        limit: this.productPageSize,
+        q: this.productSearch.trim() || undefined,
+        sort: 'newest',
+        includeHidden: true, // admins see hidden products too
+      })
+      .subscribe({
+        next: (res) => {
+          this.products = (res.data as unknown as Product[]) || [];
+          this.productTotal = res.meta?.total ?? this.products.length;
+          this.productTotalPages = Math.max(1, Math.ceil(this.productTotal / this.productPageSize));
+          this.productsLoading = false;
+        },
+        error: (err: any) => {
+          console.error('Failed to load products', err);
+          this.notify.error('Failed to load products.');
+          this.productsLoading = false;
+        },
+      });
+  }
+
+  goToProductPage(page: number): void {
+    if (page < 1 || page > this.productTotalPages) return;
+    this.productPage = page;
+    this.loadProducts();
+  }
+
+  onProductSearch(_value: string): void {
+    // Debounce so we don't hammer the API on every keystroke.
+    clearTimeout(this.productSearchTimer);
+    this.productSearchTimer = setTimeout(() => {
+      this.productPage = 1;
+      this.loadProducts();
+    }, 400);
+  }
+
+  clearProductSearch(): void {
+    this.productSearch = '';
+    this.productPage = 1;
+    this.loadProducts();
+  }
+
+  toggleStock(prod: Product): void {
+    if (!prod.id) return;
+    const newStock = prod.stock > 0 ? 0 : 1;
+    this.rowBusyId = prod.id;
+    this.shopService.patchProduct(prod.id, { stock: newStock }).subscribe({
+      next: () => {
+        prod.stock = newStock;
+        this.rowBusyId = null;
+        this.notify.success(newStock === 0 ? 'Marked out of stock.' : 'Product restocked.');
       },
       error: () => {
-        this.showToast('Failed to load products', 'error');
-        this.isLoadingProducts = false;
-      }
+        this.rowBusyId = null;
+        this.notify.error('Could not update stock.');
+      },
     });
   }
 
-  changePage(newPage: number) {
-    if (newPage >= 1 && newPage <= this.totalPages) {
-      this.loadProducts(newPage);
-    }
+  toggleHidden(prod: Product): void {
+    if (!prod.id) return;
+    const nextActive = prod.is_active === false; // if currently hidden -> show
+    this.rowBusyId = prod.id;
+    this.shopService.patchProduct(prod.id, { is_active: nextActive }).subscribe({
+      next: () => {
+        prod.is_active = nextActive;
+        this.rowBusyId = null;
+        this.notify.success(nextActive ? 'Product is now visible.' : 'Product hidden from store.');
+      },
+      error: () => {
+        this.rowBusyId = null;
+        this.notify.error('Could not update visibility.');
+      },
+    });
   }
 
-  // ================= CATEGORY LOGIC =================
-  addAttribute() { this.newCategory.attributes.push({ name: '', type: 'text' }); }
-  removeAttribute(index: number) { this.newCategory.attributes.splice(index, 1); }
-
-  editCategory(cat: Category) {
-    this.editingCategoryId = cat.id!;
-    this.newCategory = JSON.parse(JSON.stringify(cat)); 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  cancelCategoryEdit() {
-    this.editingCategoryId = null;
-    this.newCategory = { name: '', attributes: [], show_on_home: false };
-  }
-
-  submitCategory(form: NgForm) {
-    if (!this.newCategory.name) return;
-    this.isSubmitting = true;
-    
-    this.newCategory.attributes = this.newCategory.attributes.filter(attr => attr.name.trim() !== '');
-
-    if (this.editingCategoryId) {
-      this.shopService.updateCategory(this.editingCategoryId, this.newCategory).subscribe({
-        next: () => {
-          this.showToast('Category updated successfully!', 'success');
-          this.cancelCategoryEdit();
-          form.resetForm();
-          this.loadCategories();
-          this.isSubmitting = false;
-        },
-        error: (err) => { this.showToast(err.error?.statusMessage || 'Error updating', 'error'); this.isSubmitting = false; }
-      });
-    } else {
-      this.shopService.createCategory(this.newCategory).subscribe({
-        next: () => {
-          this.showToast('Category created successfully!', 'success');
-          this.cancelCategoryEdit();
-          form.resetForm();
-          this.loadCategories();
-          this.isSubmitting = false;
-        },
-        error: (err) => { this.showToast(err.error?.statusMessage || 'Error creating', 'error'); this.isSubmitting = false; }
-      });
-    }
-  }
-
-  // ================= PRODUCT LOGIC =================
-  onCategorySelect() {
-    this.selectedCategorySchema = this.categories.find(c => c.id === this.newProduct.category_id) || null;
-    if (!this.editingProductId) this.newProduct.attributes = {}; 
-  }
-
-  editProduct(prod: Product) {
-    this.editingProductId = prod.id!;
-    this.newProduct = JSON.parse(JSON.stringify(prod));
-    this.selectedCategorySchema = this.categories.find(c => c.id === prod.category_id) || null;
-    
-    this.existingImageUrls = prod.image_urls ? [...prod.image_urls] : [];
-    this.selectedFiles = [];
-    this.imagePreviews = [];
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  cancelProductEdit(form?: NgForm) {
-    this.editingProductId = null;
-    if (form) form.resetForm();
-    this.newProduct = { name: '', price: null as any, category_id: '', description: '', stock: 1, uploaded_by: 'admin_adarsh', attributes: {} };
-    this.existingImageUrls = [];
-    this.selectedFiles = [];
-    this.imagePreviews = [];
-    this.selectedCategorySchema = null;
-  }
-
-  onFilesSelected(event: any) {
-    const files: FileList = event.target.files;
-    if (files) {
-      Array.from(files).forEach(file => {
-        this.selectedFiles.push(file);
-        const reader = new FileReader();
-        reader.onload = (e: any) => this.imagePreviews.push(e.target.result);
-        reader.readAsDataURL(file);
-      });
-    }
-  }
-
-  removePreview(index: number) {
-    this.selectedFiles.splice(index, 1);
-    this.imagePreviews.splice(index, 1);
-  }
-
-  removeExistingImage(index: number) {
-    this.existingImageUrls.splice(index, 1);
-  }
-
-  submitProduct(form: NgForm) {
-    this.isSubmitting = true;
-    
-    try {
-      const formData = new FormData();
-      formData.append('name', this.newProduct.name);
-      formData.append('price', this.newProduct.price.toString());
-      formData.append('stock', this.newProduct.stock.toString());
-      formData.append('category_id', this.newProduct.category_id);
-      formData.append('description', this.newProduct.description || '');
-      formData.append('uploaded_by', this.newProduct.uploaded_by);
-      formData.append('attributes', JSON.stringify(this.newProduct.attributes || {}));
-      
-      formData.append('existing_images', JSON.stringify(this.existingImageUrls));
-
-      if (this.selectedFiles && this.selectedFiles.length > 0) {
-        this.selectedFiles.forEach((file) => formData.append('images', file));
-      }
-
-      if (this.editingProductId) {
-        this.shopService.updateProduct(this.editingProductId, formData).subscribe({
-          next: () => {
-            this.showToast('Product updated successfully!', 'success');
-            this.cancelProductEdit(form);
-            this.loadProducts(this.currentPage); // Stay on current page
-            this.isSubmitting = false;
-          },
-          error: (err) => { this.showToast(err.error?.statusMessage || 'Update failed', 'error'); this.isSubmitting = false; }
-        });
-      } else {
-        this.shopService.createProduct(formData).subscribe({
-          next: () => {
-            this.showToast('Product created successfully!', 'success');
-            const cat = this.newProduct.category_id; 
-            this.cancelProductEdit(form);
-            this.newProduct.category_id = cat; 
-            this.loadProducts(1); // Jump to page 1 to see new product
-            this.isSubmitting = false;
-          },
-          error: (err) => { this.showToast(err.error?.statusMessage || 'Upload failed', 'error'); this.isSubmitting = false; }
-        });
-      }
-    } catch (err: any) {
-      this.showToast('Failed to prepare product data', 'error');
-      this.isSubmitting = false; 
-    }
+  deleteProduct(prod: Product): void {
+    if (!prod.id) return;
+    if (!confirm(`Delete product "${prod.name}"? This cannot be undone.`)) return;
+    this.rowBusyId = prod.id;
+    this.shopService.deleteProduct(prod.id).subscribe({
+      next: () => {
+        this.notify.success('Product deleted.');
+        this.rowBusyId = null;
+        if (this.currentProductId === prod.id) this.cancelProductEdit();
+        // If the last item on a page was deleted, step back a page.
+        if (this.products.length === 1 && this.productPage > 1) this.productPage--;
+        this.loadProducts();
+      },
+      error: (err: any) => {
+        console.error(err);
+        this.rowBusyId = null;
+        this.notify.error('Could not delete product.');
+      },
+    });
   }
 }
